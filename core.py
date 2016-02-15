@@ -321,6 +321,10 @@ class Builder(object):
         R = self._get_R(r)
         return T
 
+    def mcmc(self, model_parameters, measured_data):
+        self.frequency = 
+
+
     def snell(self, indices, theta_0):
         ''' Description
         '''
