@@ -3,47 +3,14 @@
 # Author: Andrew Nadolski
 # Filename: mcmc_fit.py
 
-import numpy as np
-import matplotlib.pyplot as plt
-import emcee
-import random
+import core
 
-class MCMC(object):
-    '''
-    '''
-    def __init__(self, name='MCMC'):
-        self.name = name
-        self.num_wagers = []
-        self.val_wagers = []
+index = [2.4, 2.6, 9.7, 2.6, 2.4]
+thick = [14.5, 1.5, 250., 1.5, 14.5]
 
-    def __repr__(self):
-        return '%r' % self.name
+p0 = index+thick
 
-    def roll_dice(self):
-        self.roll = random.randint(1,100)
-        if self.roll == 100 or self.roll <= 50:
-            return False
-        else:
-            return True
+fit = core.FitFTS('./cut_eptfe_transmission.txt')
+result = fit.run_mcmc(p0)
 
-    def simple_bettor(self, funds, initial_wager, wager_count):
-        self.value = funds
-        self.wager = initial_wager
-        self.current_wager = 1
-        while self.current_wager <= wager_count:
-            if self.roll_dice():
-                self.value += self.wager
-                self.num_wagers.append(self.current_wager)
-                self.val_wagers.append(self.value)
-                self.current_wager += 1
-            else:
-                self.value -= self.wager
-                self.num_wagers.append(self.current_wager)
-                self.val_wagers.append(self.value)
-                self.current_wager += 1
-
-    def show_mc(self):
-        self.fig = plt.Figure()
-        self.fig.add_subplot(111)
-        plt.plot(self.num_wagers, self.val_wagers, alpha=.15)
-        plt.show()
+fit.show_mcmc()

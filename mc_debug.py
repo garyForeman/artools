@@ -19,6 +19,14 @@ http://www.ast.cam.ac.uk/~koposov/files/statpy_lectures2014/lecture3.pdf
 import mcmc_fit as mc
 import matplotlib.pyplot as plt
 import time
+import core
+import emcee
+
+starting_d = [14.5, 1.5, 250., 1.5, 14.5] #initial guess at thickness (mils) and dielectic
+starting_n = [2.4, 2.6, 9.7, 2.6, 2.4]
+
+
+
 
 
 # testmc = mc.MCMC()
