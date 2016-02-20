@@ -4,7 +4,7 @@ simulation.
 Based on transfer matrix method outlined in Hou, S. 1974.
 '''
 # Author: Andrew Nadolski
-# Filename: infrastructure.py
+# Filename: core.py
 
 """
 ###### TODO ######
@@ -16,8 +16,18 @@ Based on transfer matrix method outlined in Hou, S. 1974.
     * Add functionality that automatically sets up an FTS sim. It just needs to 
       automatically set the substrate, then reverse the given layers, then stick
       a vacuum layer on the end.
-    * 
-
+16 Feb 16
+    * Continue work on implementing MCMC to function more smoothly with the rest
+      of the package.
+18 Feb 16
+    * !!! IMPORTANT !!! Need to make sure the simulator gets the proper thicknesses.
+      Couple options:
+        1) Make user declare units when instantiating the builder, then handle conversion
+           automatically in the simulator
+        2) Make user convert the values themself
+        3) Something better?
+    * Write a function the allows the user to see the critical parameters of the sim in
+      one place. I.e., source and terminator layers, ar layers, freq sweep, opt freq, etc.
 """
 
 import emcee
@@ -91,11 +101,16 @@ class SourceLayer(Layer):
 
 
 class SubstrateLayer(Layer):
-    '''
+    ''' A special case of Layer. The layer to which the AR coating is attached.
+
+    Arguments
+    ---------
+    material: string
+        A key in the materials dictionary.
     '''
     def __init__(self, material):
         Layer.__init__(self, material)
-        self.thickness = 6.35e-3
+        self.thickness = 250. #mils
         self.type = 'Substrate'
         
     def __repr__(self):
@@ -149,7 +164,7 @@ class Builder(object):
         array[1,1] = A22
         return array
 
-    def _make_meters(self):
+    def make_meters(self):
         ''' Convert the thickness from given units to meters. Assumes the thickness is
         given in mils.
         '''
@@ -258,7 +273,7 @@ class Builder(object):
         pprint.pprint(mats.Electrical.LOSS_TAN)
         return
 
-    def simulate(self, frequency, polarization, theta_0=0):
+    def simulate(self, frequency, polarization='s', theta_0=0):
         ''' Description
 
         Arguments
@@ -275,10 +290,8 @@ class Builder(object):
         n = []
         [n.append(layer.get_index()) for layer in self.structure]
 
-#        print self.structure
         # get all thicknesses in one place
         d = []
-#        print [layer.thickness for layer in self.structure]
         [d.append(layer.thickness) for layer in self.structure if (layer.type == 'Layer' or layer.type == 'Substrate')]
         d.insert(0, self.structure[0].thickness)
         d.append(self.structure[-1].thickness)
@@ -332,35 +345,43 @@ class Builder(object):
 class FitFTS(object):
     '''
     '''
-    def __init__(self, filename):
-        self.name = 'MCMC'
-        self.data_path = filename
-        self.data = np.genfromtxt(filename, unpack=True)
+    def __init__(self, real_data, n_walkers, n_dimensions, n_iterations):
+        self.name = real_data[:-4]
+        self.data_path = real_data
+        self.data = np.genfromtxt(real_data, unpack=True)
         self.freqs = self.data[0]
         self.data_trans = self.data[1]
         self.sigma = self.data[2]
-        self.n_walkers = 20
-        self.n_dim = 10
-        self.n_steps = 17
+        self.n_walkers = n_walkers
+        self.n_dim = n_dimensions
+        self.n_steps = n_iterations
         self.sigma_n = .5
-        self.sigma_t = 5.
-        self.result = {}
-        self.trace = None
-        self.last_pos = None
-        self.prob_last_pos = None
+        self.sigma_t = 2.5
 
     def lnprior(self, params):
         '''
         # make cuts here: ex, if indices < 1: return -10000
             if thicknesses > 50: return -10000
         '''
-        for n in params[:len(params)/2]:
+        index = params[:len(params)/2]
+        thick = params[len(params)/2:]
+        for n in index:
             if (n < 1. or n > 10.5):
                 return -np.inf
-        for t in params[len(params)/2:]:
-            if (t <= 0. or t > 300.):
-                return -np.inf
-        return 0
+        if (thick[0] < 10. or thick[0] > 18.5):
+            return -np.inf
+        if (thick[1] < 0. or thick[1] > 3.):
+            return -np.inf
+        if (thick[2] < 200. or thick[2] > 300.):
+            return -np.inf
+        if (thick[3] < 0. or thick[3] > 3.):
+            return -np.inf
+        if (thick[4] < 10. or thick[4] > 18.5):
+            return -np.inf
+#         for t in thick:
+#             if (t <= 0. or t > 300.):
+#                 return -np.inf
+        return 0.
 
     def lnlikelihood(self, params):
         '''
@@ -396,21 +417,27 @@ class FitFTS(object):
             p0.append(p_intermediate)
          
         sampler = emcee.EnsembleSampler(self.n_walkers, self.n_dim, self.lnprobability)
-        pos, prob, state = sampler.run_mcmc(p0, self.n_steps)
+        print '\nBeginning MCMC...'
 
-        self.last_pos = pos
-        self.prob_last_pos = prob
-        self.trace = sampler.chain.reshape(-1, self.n_dim)
-        self.result['last_pos'] = self.last_pos
-        self.result['prob_last_pos'] = self.prob_last_pos
-        self.result['trace'] = self.trace
-        return #([pos],[prob],[sampler.chain.reshape(-1, self.n_dim)])
+        position = []
+        lnprob = []
+        count = 1
+        for result in sampler.sample(p0, iterations=self.n_steps, storechain=True):
+            position.append(result[0])
+            lnprob.append(result[1])
+            print 'STEP NUMBER:', count
+            count += 1
+        pos = np.array(position)
+        prob = np.array(lnprob)
+        np.savez('{name}_{n_walkers}walkers_{n_steps}steps'.format(name=self.name, n_walkers=self.n_walkers, n_steps=self.n_steps), positions = [pos[x] for x in range(len(pos))], lnprob = [prob[x] for x in range(len(prob))])
+        print '\nAll done!'
+        return sampler
 
-    def show_mcmc(self):
-        fig = plt.Figure()
-        ax = fig.add_subplot(111)
-        plt.plot(self.data[0], self.data[1])
-        plt.savefig('testing_MCMC_plot.pdf')
+#     def show_mcmc(self):
+#         fig = plt.Figure()
+#         ax = fig.add_subplot(111)
+#         plt.plot(self.data[0], self.data[1])
+#         plt.savefig('~/Desktop/testing_MCMC_plot.pdf')
 
     def simulate_for_mcmc(self, frequency, indices, thicknesses, polarization='s', theta_0=0):
         ''' Description
