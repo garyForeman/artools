@@ -3,7 +3,7 @@ simulation.
 
 Based on transfer matrix method outlined in Hou, S. 1974.
 '''
-# Author: Andrew Nadolski
+# Author: Andrew Nadolski (with lots of help from previous work by Colin Merkel, Steve Byrnes, and Toki Suzuki)
 # Filename: core.py
 
 """
@@ -334,7 +334,8 @@ class Builder(object):
         # Now find the net transmitted and reflected power
         T = self._get_T(polarization, t, n[0], n[-1])
         R = self._get_R(r)
-        return T
+        result = {'T':T, 'R':R}
+        return result
 
     def snell(self, indices, theta_0):
         ''' Description
@@ -394,7 +395,9 @@ class FitFTS(object):
         model_transmission=[]
         [model_transmission.append(self.simulate_for_mcmc(freq, indices, thicknesses)) for freq in self.freqs]
         model_transmission = np.array(model_transmission)
-        return (-np.sum((model_transmission - self.data_trans)**2*(1/(self.sigma**2)) / 2))
+    #    return (-np.sum((model_transmission - self.data_trans)**2*(1/(self.sigma**2)) / 2))
+        inv_sigma2 = 1.0/(yerr**2 + model**2*np.exp(2*lnf))
+        return -0.5*(np.sum((ymodel)**2*inv_sigma2 - np.log(inv_sigma2)))
 
     def lnprobability(self, params):
         '''
