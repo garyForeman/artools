@@ -296,12 +296,18 @@ class Builder(object):
         d.insert(0, self.structure[0].thickness)
         d.append(self.structure[-1].thickness)
         
-        # convert theicness and dielectric lists to numpy arrays
+        # get all loss tans in one place
+        tan = []
+        [tan.append(layer.losstangent) for layer in self.structure]
+
+        # convert loss, thickness and dielectric lists to numpy arrays
         n = np.asarray(n)
         d = np.asarray(d)
+        tan = np.asarray(tan)
 
         # find the wavevectors, k
-        k = 2*np.pi * n * frequency/3e8
+#        k = 2*np.pi * n * frequency/3e8  # for lossless transmission calculation
+        k = 2*np.pi*n*frequency*(1-0.5j*tan)/3e8
         olderr = sp.seterr(invalid= 'ignore') # turn off 'invalid multiplication' error; it's just the 'inf' boundaries
         delta = k * d
         sp.seterr(**olderr) # turn the error back on
