@@ -16,12 +16,13 @@ Based on transfer matrix method outlined in Hou, S. 1974.
 18 Feb 16
     * !!! IMPORTANT !!! Need to make sure the simulator gets the proper thicknesses.
       Couple options:
-        1) Make user declare units when instantiating the builder, then handle conversion
-           automatically in the simulator
+        1) Make user declare units when instantiating the builder, then handle 
+           conversion automatically in the simulator
         2) Make user convert the values themself
         3) Something better?
-    * Write a function the allows the user to see the critical parameters of the sim in
-      one place. I.e., source and terminator layers, ar layers, freq sweep, opt freq, etc.
+    * Write a function the allows the user to see the critical parameters of the 
+      sim in one place. I.e., source and terminator layers, ar layers, freq sweep, 
+      opt freq, etc.
 25 Feb 16
     * Implement threading in emcee
     * Implement maximum likelihood as first step in MCMC
@@ -487,7 +488,8 @@ class Builder(object):
 
         # get all thicknesses in one place
         d = []
-        [d.append(layer.thickness) for layer in self.structure if (layer.type == 'Layer' or layer.type == 'Substrate')]
+        [d.append(layer.thickness) for layer in self.structure if \
+             (layer.type == 'Layer' or layer.type == 'Substrate')]
         d.insert(0, self.structure[0].thickness)
         d.append(self.structure[-1].thickness)
         
@@ -503,7 +505,8 @@ class Builder(object):
         # find the wavevectors, k
 #        k = 2*np.pi * n * frequency/3e8  # for lossless transmission calculation
         k = 2*np.pi*n*frequency*(1-0.5j*tan)/3e8
-        olderr = sp.seterr(invalid= 'ignore') # turn off 'invalid multiplication' error; it's just the 'inf' boundaries
+        olderr = sp.seterr(invalid= 'ignore') # turn off 'invalid multiplication' error;
+                                              #it's just the 'inf' boundaries
         delta = k * d
         sp.seterr(**olderr) # turn the error back on
 
@@ -520,13 +523,14 @@ class Builder(object):
             M[i] = 1/t_amp[i,i+1] * np.dot(self._make_2x2(np.exp(-1j*delta[i]),
                                                           0., 0., np.exp(1j*delta[i]),
                                                           dtype=complex),
-                                           self._make_2x2(1., r_amp[i,i+1], r_amp[i,i+1], 1.,
-                                                          dtype=complex))
+                                           self._make_2x2(1., r_amp[i,i+1], \
+                                                              r_amp[i,i+1], 1., \
+                                                              dtype=complex))
         M_prime = self._make_2x2(1., 0., 0., 1., dtype=complex)
         for i in range(1, len(self.structure)-1):
             M_prime = np.dot(M_prime, M[i])
-        M_prime = np.dot(self._make_2x2(1., r_amp[0,1], r_amp[0,1], 1., dtype=complex)/t_amp[0,1],
-                         M_prime)
+        M_prime = np.dot(self._make_2x2(1., r_amp[0,1], r_amp[0,1], 1., \
+                                            dtype=complex)/t_amp[0,1], M_prime)
         
         # Now find the net transmission and reflection amplitudes
         t = 1/M_prime[0,0]
