@@ -1,7 +1,7 @@
-''' Contains the tools needed to set up a multilayer antireflection coating
+ ''' Contains the tools needed to set up a multilayer antireflection coating
 simulation.
 
-Based on transfer matrix method outlined in Hou, S. 1974.
+Based on transfer matrix method outlined in Hou, H.S. 1974.
 '''
 
 # Author: Andrew Nadolski (with lots of help from previous work by Colin Merkel, Steve Byrnes, and Toki Suzuki)
