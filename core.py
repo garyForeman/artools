@@ -1,4 +1,4 @@
- ''' Contains the tools needed to set up a multilayer antireflection coating
+''' Contains the tools needed to set up a multilayer antireflection coating
 simulation.
 
 Based on transfer matrix method outlined in Hou, H.S. 1974.
@@ -90,7 +90,7 @@ class Layer(object):
         '''
         return (np.sqrt(self.dielectric))
 
-    def ideal_thickness(self, opt_freq=150e9):
+    def ideal_thickness(self, opt_freq=160e9):
         ''' Return the ideal thickness of an AR coating layer given its dielectric
         constant and some optimization frequency.
         
@@ -315,7 +315,7 @@ class Builder(object):
         return
 
     def _r_at_interface(self, polarization, n_1, n_2):
-        ''' Calculate the reflected amplitdue at an interface.
+        ''' Calculate the reflected amplitude at an interface.
 
         Arguments
         ---------
@@ -553,6 +553,38 @@ class Builder(object):
         '''
         return sp.arcsin(np.real_if_close(n_list[0]*np.sin(th_0) / n_list))
 
+    def run_sim(self):
+        ''' Takes the attributes of the Builder() object and executes the simulation at
+        each frequency in Builder().freq_sweep. The output is saved to a columnized, tab
+        separated text file.
+
+        Arguments
+        ---------
+        None
+
+        Returns
+        -------
+        transmission : numpy array
+            A three-element array. The first element is a list of frequencies, the second
+            elements is a list of the transmissions at each frequency, and the third is a
+            list of the reflections at each frequency.
+        '''
+        f_list = []
+        t_list = []
+        r_list = [] 
+        for f in self.freq_sweep:
+            results = self.simulate(f)
+            f_list.append(f)
+            t_list.append(results['T'])
+            r_list.append(results['R'])
+        fs = np.asarray(f_list)
+        ts = np.asarray(t_list)
+        rs = np.asarray(r_list)
+        results = np.array([fs, ts, rs])
+        header = 'Frequency (Hz)\t\tTransmission amplitude\t\tReflection amplitude'
+        with open('transmission_data.txt', 'wb') as f:
+            np.savetxt(f, np.c_[fs, ts, rs], delimiter='\t', header=header)
+        return results
 
 # class FitFTS(object):
 #     '''
