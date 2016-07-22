@@ -1,14 +1,17 @@
 Ok, here's a quick guide to simulating with artools.
 
-1) Create a Builder() object. Builder() handles most of the background functionality of the simulator.
-   ex: b = core.Builder()
+1) Import the package
+   ex: import artools as ar
 
-2) Choose the freq sweep range. Give the bounds in GHz. Defaults 1 GHz steps.
+2) Create a Builder() object. Builder() handles most of the background functionality of the simulator.
+   ex: b = simulator.Builder()
+
+3) Choose the freq sweep range. Give the bounds in GHz. Defaults 1 GHz steps.
    ex: b.set_freq_sweep(0., 300.)
 
-3) Choose your SourceLayer() and TerminatorLayer(). These default to 'vacuum' and 'alumina' and should be good enough for most work.
+4) Choose your SourceLayer() and TerminatorLayer(). These default to 'vacuum' and 'alumina' and should be good enough for most work.
 
-4) Create a Layer() object. Or create many Layer() objects. Then set their thicknesses in meters.
+5) Create a Layer() object. Or create many Layer() objects. Then set their thicknesses in meters.
    ex: eptfe = core.Layer('eptfe')
        ro3035 = core.Layer('ro3035')
        eps7 = core.Layer('ideal7')
@@ -17,9 +20,9 @@ Ok, here's a quick guide to simulating with artools.
        ro3035.thickness = 5.6*2.54e-5
        eps7.ideal_thickness()		# calling 'ideal_thickness' calculates the ideal 1/4 lambda thickness for that dielectric at 150 GHz
 
-5) Put your layers in a list and connect them.
+6) Put your layers in a list and connect them.
    ex: ar_stack = [eptfe, ro3035, eps7]
        b.interconnect(ar_stack)
 
-6) Run sim.
-   ex: b.simulate()
+7) Run sim.
+   ex: b.run_sim()
