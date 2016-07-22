@@ -1,8 +1,8 @@
-''' _materials is a reference module. It contains properties of materials
+''' materials is a reference module. It contains properties of materials
 that are frequently used in AR coating simulations.
 '''
 # Author: Andrew Nadolski
-# Filename: _materials.py
+# Filename: materials.py
 
 
 class Electrical:	
