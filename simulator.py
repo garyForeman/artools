@@ -10,10 +10,7 @@ Based on transfer matrix method outlined in Hou, H.S. 1974.
 """
 ###### TODO ######
 
-7/25
-    * Write intermediate functions that sort out the layers, thicknesses, etc
-    outside the main simulation function
-    * 
+
 
 ########## OLD STUFF DOWN BELOW ###########
 11 Feb 16
@@ -110,7 +107,7 @@ class Layer:
         return (1/np.sqrt(self.dielectric)*3e8/(4*opt_freq))
 
 
-class BondingLayer:
+class BondingLayer(Layer):
     ''' A special case of 'Layer'; represents the adhesive layer used in the AR stack.
 
     Arguments
@@ -313,14 +310,6 @@ class Builder:
         array[1,1] = A22
         return array
 
-    def make_meters(self):
-        ''' Convert the thickness of each element in 'Builder().structure' to
-        meters, assuming the given thickness is in mils.
-        '''
-        for layer in self.structure:
-            layer.thickness = layer.thickness * 2.54e-5 # convert from mils to meters
-        return
-
     def _r_at_interface(self, polarization, n_1, n_2):
         ''' Calculate the reflected amplitude at an interface.
 
@@ -448,6 +437,14 @@ class Builder:
         for i in range(len(stack)):
             self.structure.append(stack[i])
         self.structure.append(self.terminator)
+        return
+
+    def make_meters(self):
+        ''' Convert the thickness of each element in 'Builder().structure' to
+        meters, assuming the given thickness is in mils.
+        '''
+        for layer in self.structure:
+            layer.thickness = layer.thickness * 2.54e-5 # convert from mils to meters
         return
 
     def set_freq_sweep(self, lower_bound, upper_bound, resolution=1):
