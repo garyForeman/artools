@@ -9,8 +9,9 @@ Based on transfer matrix method outlined in Hou, H.S. 1974.
 
 """
 ###### TODO ######
-
-
+7/25
+    * Finish writing _d_converter() function inside Builder()
+    * Write convenience function to view all attributes of a layer
 
 ########## OLD STUFF DOWN BELOW ###########
 11 Feb 16
@@ -229,28 +230,43 @@ class Builder:
 
     Attributes
     ----------
-    source : object
-        'Layer' object 'SourceLayer' that defines where the wave emanates from. 
-        Defaults to 'SourceLayer('vacuum')'.
-    terminator : object
-        'Layer' object 'Sourcelayer' that defines where the wave terminates.
-        Defaults to 'TerminatorLayer('alumina')'.
-    structure : list
-        The layers incorporated in the simulation. Defaults to empty list. The 
-        list is populated by creating layers and calling 'interconnect()'.
     freq_sweep : numpy array
         The range of frequencies to be simulated. Defaults to 0. Set a frequency
         sweep by calling 'set_freq_sweep()'.
     optimization_frequency : float
         The frequency (in Hz) at which to calculate the ideal thickness for a given
         material. Defaults to 160e9 Hz (160 GHz).
+    stack : list
+        The user-defined layers incorporated in the simulation EXCEPT the source
+        and terminator layers.
+    structure : list
+        The layers incorporated in the simulation INCLUDING the source and
+        terminator layers. Defaults to empty list. The list is populated 
+        by creating layers and calling 'interconnect()'.
+    source : object
+        'Layer' object 'SourceLayer' that defines where the wave emanates from. 
+        Defaults to 'SourceLayer('vacuum')'.
+    terminator : object
+        'Layer' object 'Sourcelayer' that defines where the wave terminates.
+        Defaults to 'TerminatorLayer('alumina')'.
+
+
+
     '''
     def __init__(self):
         self.source = SourceLayer('vacuum')
         self.terminator = TerminatorLayer('alumina')
+        self.stack = []
         self.structure = []
         self.freq_sweep = 0.
         self.optimization_frequency = 160e9 # 160 GHz
+
+    def _d_converter(self):
+        ''' Checks the units of all elements in the connected ar coating
+        stack. Converts the lengths of the layers to meters if they are
+        not already in meters.
+        '''
+        pass
 
     def _get_R(self, net_r_amp):
         ''' Return fraction of reflected power.
@@ -418,13 +434,45 @@ class Builder:
         T = (s_data + p_data)/2
         return T
 
+    def add_layer(self, material, thickness=5.0, units='mil', stack_position=-1):
+        ''' Create a layer and add it to the AR coating stack
+
+        Arguments
+        ---------
+        material : string
+            A key in the dictionary of materials found in _materials.py.
+            You can view these materials by calling 
+            'show_materials()'.
+        stack_position : int
+            The position of the layer in the AR coating stack, indexed
+            from 0. Default is -1 (i.e., layer is automatically added
+            to the end (bottom?) of the stack.
+        thickness : float
+            The thickness of the AR coating layer material. Assumed to
+            be given in 'mil' (i.e. thousandths of an inch) unless 
+            otherwise stated
+        units : string
+            The units of length for the AR coating layer. Must be one of:
+                { 'mil' ,
+                  'inch',
+                  'mm'  ,
+                  'm'   ,
+                  'um'  }
+        '''
+        layer = Layer(material)
+        if len(self.stack) == 0:
+            self.stack.append(layer)
+        else:
+            self.stack.insert(stack_position, layer)
+        return
+
     def clear_stack(self):
         ''' Remove all elements from the current AR 'structure'.
         '''
         self.structure = []
         return
 
-    def interconnect(self, stack):
+    def interconnect(self):
         ''' Connect all the AR coating layer objects.
 
         Arguments
@@ -434,8 +482,8 @@ class Builder:
         '''
         self.clear_stack()
         self.structure.append(self.source)
-        for i in range(len(stack)):
-            self.structure.append(stack[i])
+        for i in range(len(self.stack)):
+            self.structure.append(self.stack[i])
         self.structure.append(self.terminator)
         return
 
@@ -488,7 +536,7 @@ class Builder:
         self.terminator = TerminatorLayer(material)
         return
 
-    def show_available_materials(self):
+    def show_materials(self):
         ''' List the materials with known properties. The simulator can handle these
         materials. The listed material names are keys in the materials properties 
         dictionary. 
