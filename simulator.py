@@ -9,6 +9,13 @@ Based on transfer matrix method outlined in Hou, H.S. 1974.
 
 """
 ###### TODO ######
+
+7/25
+    * Write intermediate functions that sort out the layers, thicknesses, etc
+    outside the main simulation function
+    * 
+
+########## OLD STUFF DOWN BELOW ###########
 11 Feb 16
     * Add functionality that automatically sets up an FTS sim. It just needs to 
       automatically set the substrate, then reverse the given layers, then stick
@@ -103,7 +110,7 @@ class Layer:
         return (1/np.sqrt(self.dielectric)*3e8/(4*opt_freq))
 
 
-class BondingLayer(Layer):
+class BondingLayer:
     ''' A special case of 'Layer'; represents the adhesive layer used in the AR stack.
 
     Arguments
@@ -337,6 +344,51 @@ class Builder:
         else:
             raise ValueError("Polarization must be 's' or 'p'")
 
+    def _sort_ns(self):
+        ''' Organizes the layers' indices of refraction in the simulation
+
+        Returns
+        -------
+        n : array
+            The ordered list of indices of refraction, from incident
+            medium to terminating medium
+        '''
+        n = []
+        [n.append(layer.get_index()) for layer in self.structure]
+        n = np.asarray(n)
+        return n
+
+    def _sort_ds(self):
+        ''' Organizes the layers' thicknesses in the simulation
+
+        Returns
+        -------
+        d : array
+            The ordered list of indices thicknesses, from incident
+            medium to terminating medium
+        '''
+        d = []
+        [d.append(layer.thickness) for layer in self.structure if \
+             (layer.type == 'Layer' or layer.type == 'Substrate')]
+        d.insert(0, self.structure[0].thickness)
+        d.append(self.structure[-1].thickness)
+        d = np.asarray(d)
+        return d
+
+    def _sort_tans(self):
+        ''' Organizes the layers' loss tangents in the simulation
+
+        Returns
+        -------
+        tan : array
+            The ordered list of loss tangents, from incident
+            medium to terminating medium
+        '''
+        tan = []
+        [tan.append(layer.losstangent) for layer in self.structure]
+        tan = np.asarray(tan)
+        return tan
+
     def _t_at_interface(self, polarization, n_1, n_2):
         ''' Calculate the transmission amplitude at an interface.
 
@@ -481,24 +533,13 @@ class Builder:
             return self._unpolarized_simulation(frequency)
 
         # get all the indices of refraction in one place
-        n = []
-        [n.append(layer.get_index()) for layer in self.structure]
+        n = self._sort_ns()
 
         # get all thicknesses in one place
-        d = []
-        [d.append(layer.thickness) for layer in self.structure if \
-             (layer.type == 'Layer' or layer.type == 'Substrate')]
-        d.insert(0, self.structure[0].thickness)
-        d.append(self.structure[-1].thickness)
+        d = self._sort_ds()
         
         # get all loss tans in one place
-        tan = []
-        [tan.append(layer.losstangent) for layer in self.structure]
-
-        # convert loss, thickness and dielectric lists to numpy arrays
-        n = np.asarray(n)
-        d = np.asarray(d)
-        tan = np.asarray(tan)
+        tan = self._sort_tans()
 
         # find the wavevectors, k
 #        k = 2*np.pi * n * frequency/3e8  # for lossless transmission calculation
