@@ -12,8 +12,6 @@ Based on transfer matrix method outlined in Hou, H.S. 1974.
 7/25
 
     * Write convenience function to display all attributes of a layer
-    * Write convenience function to display all simulation parameters
-
 
 ########## OLD STUFF DOWN BELOW ###########
 11 Feb 16
@@ -25,7 +23,6 @@ Based on transfer matrix method outlined in Hou, H.S. 1974.
     * Implement maximum likelihood as first step in MCMC
     * Multplication is expensive computation. Turn matrix products into sums 
         (or something...anything...)
-
 """
 
 #import emcee
