@@ -1,3 +1,12 @@
 # artools
 
-If I type here, what happens?
+Dependencies:
+
+numpy
+matplotlib
+scipy
+pprint
+shutil
+time
+os
+glob
