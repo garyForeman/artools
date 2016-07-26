@@ -16,7 +16,8 @@ TODO
 
 7/26
     * Debug _convert_to_wavelength(). The plot output looks funny....
-
+    * write a bandpass drawing function that take upper and lower limits
+    as input and draws a semi-opaque, colored rectangular region
 '''
 
 
