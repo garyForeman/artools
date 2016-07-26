@@ -2,11 +2,11 @@
 
 Dependencies:
 
-numpy
-matplotlib
-scipy
-pprint
-shutil
-time
-os
-glob
+glob\n
+matplotlib\n
+numpy\n
+os\n
+pprint\n
+scipy\n
+shutil\n
+time\n
