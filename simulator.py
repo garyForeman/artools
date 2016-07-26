@@ -387,6 +387,21 @@ class Builder:
         else:
             raise ValueError("Polarization must be 's' or 'p'")
 
+    def _interconnect(self):
+        ''' Connect all the AR coating layer objects.
+
+        Arguments
+        ---------
+        stack : list
+            Contains a list of 'Layer' objects, ordered from source to terminator.
+        '''
+        self.clear_stack()
+        self.structure.append(self.source)
+        for i in range(len(self.stack)):
+            self.structure.append(self.stack[i])
+        self.structure.append(self.terminator)
+        return
+
     def _make_2x2(self, A11, A12, A21, A22, dtype=float):
         ''' Return a 2x2 array quickly.
 
@@ -561,21 +576,6 @@ class Builder:
         self.structure = []
         return
 
-    def _interconnect(self):
-        ''' Connect all the AR coating layer objects.
-
-        Arguments
-        ---------
-        stack : list
-            Contains a list of 'Layer' objects, ordered from source to terminator.
-        '''
-        self.clear_stack()
-        self.structure.append(self.source)
-        for i in range(len(self.stack)):
-            self.structure.append(self.stack[i])
-        self.structure.append(self.terminator)
-        return
-
     def remove_layer(self, layer_pos):
         ''' Removes the specified layer from the AR coating stack
 
@@ -586,6 +586,46 @@ class Builder:
         '''
         self.stack.pop(layer_pos)
         return
+
+    def run_sim(self):
+        ''' Takes the attributes of the Builder() object and executes
+        the simulation at each frequency in Builder().freq_sweep. The
+        output is saved to a columnized, tabseparated text file.
+
+        Returns
+        -------
+        transmission : numpy array
+            A three-element array. The first element is a list of
+            frequencies, the second elements is a list of the
+            transmissions at each frequency, and the third is a list of
+            the reflections at each frequency.
+        '''
+        t0 = time.time()
+        print 'Beginning AR coating simulation'
+        self._d_converter()
+        self._interconnect()
+        f_list = []
+        t_list = []
+        r_list = []
+        for f in self.freq_sweep:
+            results = self.sim_single_freq(f)
+            f_list.append(f)
+            t_list.append(results['T'])
+            r_list.append(results['R'])
+        fs = np.asarray(f_list)
+        ts = np.asarray(t_list)
+        rs = np.asarray(r_list)
+        results = np.array([fs, ts, rs])
+        t = time.ctime(time.time())
+        fname = 'transmission_data_{t}.txt'.format(t=t)
+        header = 'Frequency (Hz)\t\tTransmission amplitude\t\tReflection amplitude'
+        with open(fname, 'wb') as f:
+            np.savetxt(f, np.c_[fs, ts, rs], delimiter='\t', header=header)
+        print 'Finished running AR coating simulation'
+        t1 = time.time()
+        t_elapsed = t1-t0
+        print 'Elapsed time: {t}s\n'.format(t=t_elapsed)
+        return results
 
     def set_freq_sweep(self, lower_bound, upper_bound, resolution=1):
         ''' Set the frequency range over which the simulation will run.
@@ -640,7 +680,7 @@ class Builder:
         pprint.pprint(mats.Electrical.LOSS_TAN)
         return
 
-    def simulate(self, frequency, polarization='s', theta_0=0):
+    def sim_single_freq(self, frequency, polarization='s', theta_0=0):
         ''' Run the model simulation for a single frequency.
 
         Arguments
@@ -694,45 +734,6 @@ class Builder:
         '''
         return sp.arcsin(np.real_if_close(n_list[0]*np.sin(th_0) / n_list))
 
-    def run_sim(self):
-        ''' Takes the attributes of the Builder() object and executes 
-        the simulation at each frequency in Builder().freq_sweep. The 
-        output is saved to a columnized, tabseparated text file.
-
-        Returns
-        -------
-        transmission : numpy array
-            A three-element array. The first element is a list of 
-            frequencies, the second elements is a list of the 
-            transmissions at each frequency, and the third is a list of 
-            the reflections at each frequency.
-        '''
-        t0 = time.time()
-        print 'Beginning AR coating simulation'
-        self._d_converter()
-        self._interconnect()
-        f_list = []
-        t_list = []
-        r_list = [] 
-        for f in self.freq_sweep:
-            results = self.simulate(f)
-            f_list.append(f)
-            t_list.append(results['T'])
-            r_list.append(results['R'])
-        fs = np.asarray(f_list)
-        ts = np.asarray(t_list)
-        rs = np.asarray(r_list)
-        results = np.array([fs, ts, rs])
-        t = time.ctime(time.time())
-        fname = 'transmission_data_{t}.txt'.format(t=t)
-        header = 'Frequency (Hz)\t\tTransmission amplitude\t\tReflection amplitude'
-        with open(fname, 'wb') as f:
-            np.savetxt(f, np.c_[fs, ts, rs], delimiter='\t', header=header)
-        print 'Finished running AR coating simulation'
-        t1 = time.time()
-        t_elapsed = t1-t0
-        print 'Elapsed time: {t}s\n'.format(t=t_elapsed)
-        return results
 
 # class FitFTS(object):
 #     '''
