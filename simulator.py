@@ -10,24 +10,16 @@ Based on transfer matrix method outlined in Hou, H.S. 1974.
 """
 ###### TODO ######
 7/25
-    * Finish writing _d_converter() function inside Builder()
-    * Write convenience function to view all attributes of a layer
+
+    * Write convenience function to display all attributes of a layer
+    * Write convenience function to display all simulation parameters
+
 
 ########## OLD STUFF DOWN BELOW ###########
 11 Feb 16
     * Add functionality that automatically sets up an FTS sim. It just needs to 
       automatically set the substrate, then reverse the given layers, then stick
       a vacuum layer on the end.
-18 Feb 16
-    * !!! IMPORTANT !!! Need to make sure the simulator gets the proper thicknesses.
-      Couple options:
-        1) Make user declare units when instantiating the builder, then handle 
-           conversion automatically in the simulator
-        2) Make user convert the values themself
-        3) Something better?
-    * Write a function the allows the user to see the critical parameters of the 
-      sim in one place. I.e., source and terminator layers, ar layers, freq sweep, 
-      opt freq, etc.
 25 Feb 16
     * Implement threading in emcee
     * Implement maximum likelihood as first step in MCMC
@@ -76,6 +68,7 @@ class Layer:
         self.name = material.lower()
         self.thickness = 5.
         self.type = 'Layer'
+        self.units = None
         try:
             self.dielectric = mats.Electrical.DIELECTRIC[self.name]
         except:
@@ -130,7 +123,7 @@ class BondingLayer(Layer):
     '''
     def __init__(self, material):
         Layer.__init__(self, material)
-        self.thickness = 40.e-6 # typical Stycast 1266 thickness
+        self.thickness = 100.e-6 # typical Stycast 1266 thickness
         self.type = 'Bonding layer'
 
     def __repr__(self):
@@ -174,7 +167,7 @@ class SubstrateLayer(Layer):
     ---------
     material : string
         A key in the materials dictionary found in _materials.py. You can view
-        these materials by calling 'show_available_materials()'.
+        these materials by calling 'show_materials()'.
 
     Attributes
     ----------
@@ -238,7 +231,7 @@ class Builder:
         material. Defaults to 160e9 Hz (160 GHz).
     stack : list
         The user-defined layers incorporated in the simulation EXCEPT the source
-        and terminator layers.
+        and terminator layers. Defaults to empty list.
     structure : list
         The layers incorporated in the simulation INCLUDING the source and
         terminator layers. Defaults to empty list. The list is populated 
@@ -249,9 +242,6 @@ class Builder:
     terminator : object
         'Layer' object 'Sourcelayer' that defines where the wave terminates.
         Defaults to 'TerminatorLayer('alumina')'.
-
-
-
     '''
     def __init__(self):
         self.source = SourceLayer('vacuum')
@@ -261,12 +251,106 @@ class Builder:
         self.freq_sweep = 0.
         self.optimization_frequency = 160e9 # 160 GHz
 
+    def _calc_R_T_amp(self, polarization, n, delta):
+        ''' Calculates the reflected and transmitted amplitudes
+
+        Arguments
+        ---------
+        polarization : string
+            The polarization of the source wave. Must be one of: 's', 'p', or 'u'.
+        n : array
+            An array of refractive indices, ordered from vacuum to substrate
+        delta : array
+            An array of wavevector offsets
+        
+        Returns
+        -------
+        (r, t) : tuple
+            A tuple where 'r' is the reflected amplitude, and 't' is the
+            transmitted amplitude
+        '''
+
+        t_amp = np.zeros((len(self.structure), len(self.structure)), dtype=complex)
+        r_amp = np.zeros((len(self.structure), len(self.structure)), dtype=complex)
+
+        for i in range(len(self.structure)-1):
+            t_amp[i,i+1] = self._t_at_interface(polarization, n[i], n[i+1])
+            r_amp[i,i+1] = self._r_at_interface(polarization, n[i], n[i+1])
+
+        M = np.zeros((len(self.structure),2,2),dtype=complex)
+        for i in range(1,len(self.structure)-1):
+            M[i] = 1/t_amp[i,i+1] * np.dot(self._make_2x2(np.exp(-1j*delta[i]),
+                                                          0., 0., np.exp(1j*delta[i]),
+                                                          dtype=complex),
+                                           self._make_2x2(1., r_amp[i,i+1], \
+                                                              r_amp[i,i+1], 1., \
+                                                              dtype=complex))
+        M_prime = self._make_2x2(1., 0., 0., 1., dtype=complex)
+        for i in range(1, len(self.structure)-1):
+            M_prime = np.dot(M_prime, M[i])
+        M_prime = np.dot(self._make_2x2(1., r_amp[0,1], r_amp[0,1], 1., \
+                                            dtype=complex)/t_amp[0,1], M_prime)
+        t = 1/M_prime[0,0]
+        r = M_prime[0,1]/M_prime[0,0]
+        return (r, t)
+
     def _d_converter(self):
         ''' Checks the units of all elements in the connected ar coating
         stack. Converts the lengths of the layers to meters if they are
         not already in meters.
         '''
-        pass
+        units = {'um':1e-6, 'mm':1e-3, 'inch':2.54e-2, 'in':2.54e-2,\
+                     'micron':1e-6, 'mil':2.54e-5, 'm':1.0}
+        for i in self.stack:
+            i.thickness = i.thickness*units[i.units]
+        return
+        
+    def _find_ks(self, n, frequency, tan, lossy=True):
+        ''' Calculate the wavevectors
+
+        Arguments
+        ---------
+        n : array
+            An array of refractive indices, ordered from vacuum to
+            substrate
+        frequency : float
+            The frequency at which to calculate the wavevector, k
+        tan : array
+            An array of loss tangents, ordered from vacuum to substrate
+        lossy : boolean
+            If 'True' the wavevector will be found for a lossy material.
+            If 'False' the wavevector will be found for lossless material.
+        Returns
+        -------
+        k : complex
+            The complex wavevector, k
+        '''
+        if lossy:
+            k = 2*np.pi*n*frequency*(1-0.5j*tan)/3e8
+        else:
+            k = 2*np.pi*n*frequency/3e8
+        return k
+
+    def _find_k_offsets(self, k, d):
+        ''' Calculate the wavevector offset, delta
+
+        Arguments
+        ---------
+        k : array
+            The wavevector
+        d : array
+            An array of thicknesses, ordered from vacuum to substrate
+
+        Returns
+        -------
+        delta : array
+            The wavevector offset
+        '''
+        olderr = sp.seterr(invalid= 'ignore') # turn off 'invalid multiplication' error;
+                                              # it's just the 'inf' boundaries
+        delta = k * d
+        sp.seterr(**olderr)                   # turn the error back on
+        return delta
 
     def _get_R(self, net_r_amp):
         ''' Return fraction of reflected power.
@@ -453,14 +537,19 @@ class Builder:
             otherwise stated
         units : string
             The units of length for the AR coating layer. Must be one of:
-                { 'mil' ,
-                  'inch',
-                  'mm'  ,
-                  'm'   ,
-                  'um'  }
+                { 'mil'   ,
+                  'inch'  ,
+                  'mm'    ,
+                  'm'     ,
+                  'um'    ,
+                  'in'    ,
+                  'micron'}
         '''
         layer = Layer(material)
-        if len(self.stack) == 0:
+        layer.thickness = thickness
+        layer.units = units
+        pos_check = -1
+        if (pos_check == stack_position):
             self.stack.append(layer)
         else:
             self.stack.insert(stack_position, layer)
@@ -472,7 +561,7 @@ class Builder:
         self.structure = []
         return
 
-    def interconnect(self):
+    def _interconnect(self):
         ''' Connect all the AR coating layer objects.
 
         Arguments
@@ -487,12 +576,15 @@ class Builder:
         self.structure.append(self.terminator)
         return
 
-    def make_meters(self):
-        ''' Convert the thickness of each element in 'Builder().structure' to
-        meters, assuming the given thickness is in mils.
+    def remove_layer(self, layer_pos):
+        ''' Removes the specified layer from the AR coating stack
+
+        Arguments
+        ---------
+        layer_pos : int
+            The index of the layer to remove from the AR coating stack
         '''
-        for layer in self.structure:
-            layer.thickness = layer.thickness * 2.54e-5 # convert from mils to meters
+        self.stack.pop(layer_pos)
         return
 
     def set_freq_sweep(self, lower_bound, upper_bound, resolution=1):
@@ -508,7 +600,8 @@ class Builder:
             The interval at which to sample the frequency range, given in GHz.
             Defaults to 1 GHz.
         '''
-        self.freq_sweep = np.linspace(lower_bound*1e9, upper_bound*1e9, (upper_bound-lower_bound)/resolution)
+        self.freq_sweep = np.linspace(lower_bound*1e9, upper_bound*1e9, \
+                                          (upper_bound-lower_bound)/resolution)
         return
 
     def set_source_layer(self, material='vacuum'):
@@ -548,20 +641,20 @@ class Builder:
         return
 
     def simulate(self, frequency, polarization='s', theta_0=0):
-        ''' Run the model simulation.
+        ''' Run the model simulation for a single frequency.
 
         Arguments
         ---------
         frequency : float
             The frequency at which to evaluate the model (in Hz).
         polarization : string, optional
-            The polarization of the source wave. Must be one of: 's', 'p', or 'u'.
-            Default is 's'.
+            The polarization of the source wave. Must be one of: 's', 
+            'p', or 'u'. Default is 's'.
             
             ### NOTE ###
-            I've chosen 's' polarization as the default because this simulator only
-            handles normal incidence waves, and and at normal incidence 's' and 'p'
-            are equivalent.
+            I've chosen 's' polarization as the default because this 
+            simulator only handles normal incidence waves, and and at 
+            normal incidence 's' and 'p' are equivalent.
         theta_0 : float, optional
             The angle of incidence at the first interface.
 
@@ -574,54 +667,16 @@ class Builder:
                     }
         '''
         # check the desired polarization
-        if polarization == 'u':
-            return self._unpolarized_simulation(frequency)
-
-        # get all the indices of refraction in one place
-        n = self._sort_ns()
-
-        # get all thicknesses in one place
-        d = self._sort_ds()
+#        if polarization == 'u':
+#            return self._unpolarized_simulation(frequency)
         
-        # get all loss tans in one place
-        tan = self._sort_tans()
-
-        # find the wavevectors, k
-#        k = 2*np.pi * n * frequency/3e8  # for lossless transmission calculation
-        k = 2*np.pi*n*frequency*(1-0.5j*tan)/3e8
-        olderr = sp.seterr(invalid= 'ignore') # turn off 'invalid multiplication' error;
-                                              #it's just the 'inf' boundaries
-        delta = k * d
-        sp.seterr(**olderr) # turn the error back on
-
-        # now get transmission and reflection amplitudes
-        t_amp = np.zeros((len(self.structure), len(self.structure)), dtype=complex)
-        r_amp = np.zeros((len(self.structure), len(self.structure)), dtype=complex)
-
-        for i in range(len(self.structure)-1):
-            t_amp[i,i+1] = self._t_at_interface(polarization, n[i], n[i+1])
-            r_amp[i,i+1] = self._r_at_interface(polarization, n[i], n[i+1])
-
-        M = np.zeros((len(self.structure),2,2),dtype=complex)
-        for i in range(1,len(self.structure)-1):
-            M[i] = 1/t_amp[i,i+1] * np.dot(self._make_2x2(np.exp(-1j*delta[i]),
-                                                          0., 0., np.exp(1j*delta[i]),
-                                                          dtype=complex),
-                                           self._make_2x2(1., r_amp[i,i+1], \
-                                                              r_amp[i,i+1], 1., \
-                                                              dtype=complex))
-        M_prime = self._make_2x2(1., 0., 0., 1., dtype=complex)
-        for i in range(1, len(self.structure)-1):
-            M_prime = np.dot(M_prime, M[i])
-        M_prime = np.dot(self._make_2x2(1., r_amp[0,1], r_amp[0,1], 1., \
-                                            dtype=complex)/t_amp[0,1], M_prime)
-        
-        # Now find the net transmission and reflection amplitudes
-        t = 1/M_prime[0,0]
-        r = M_prime[0,1]/M_prime[0,0]
-        
-        # Now find the net transmitted and reflected power
-        T = self._get_T(polarization, t, n[0], n[-1])
+        n = self._sort_ns()                                 # get all refractive indices
+        d = self._sort_ds()                                 # get all thicknesses
+        tan = self._sort_tans()                             # get all loss tans
+        k = self._find_ks(n, frequency, tan)                # find all wavevectors, k
+        delta = self._find_k_offsets(k, d)                  # calculate all offsets
+        r, t = self._calc_R_T_amp(polarization, n, delta)   # get trans, ref amps
+        T = self._get_T(polarization, t, n[0], n[-1])       # find net trans, ref power
         R = self._get_R(r)
         result = {'T':T, 'R':R}
         return result
@@ -640,23 +695,22 @@ class Builder:
         return sp.arcsin(np.real_if_close(n_list[0]*np.sin(th_0) / n_list))
 
     def run_sim(self):
-        ''' Takes the attributes of the Builder() object and executes the simulation at
-        each frequency in Builder().freq_sweep. The output is saved to a columnized, tab
-        separated text file.
-
-        Arguments
-        ---------
-        None
+        ''' Takes the attributes of the Builder() object and executes 
+        the simulation at each frequency in Builder().freq_sweep. The 
+        output is saved to a columnized, tabseparated text file.
 
         Returns
         -------
         transmission : numpy array
-            A three-element array. The first element is a list of frequencies, the second
-            elements is a list of the transmissions at each frequency, and the third is a
-            list of the reflections at each frequency.
+            A three-element array. The first element is a list of 
+            frequencies, the second elements is a list of the 
+            transmissions at each frequency, and the third is a list of 
+            the reflections at each frequency.
         '''
         t0 = time.time()
         print 'Beginning AR coating simulation'
+        self._d_converter()
+        self._interconnect()
         f_list = []
         t_list = []
         r_list = [] 
@@ -669,8 +723,10 @@ class Builder:
         ts = np.asarray(t_list)
         rs = np.asarray(r_list)
         results = np.array([fs, ts, rs])
+        t = time.ctime(time.time())
+        fname = 'transmission_data_{t}.txt'.format(t=t)
         header = 'Frequency (Hz)\t\tTransmission amplitude\t\tReflection amplitude'
-        with open('transmission_data.txt', 'wb') as f:
+        with open(fname, 'wb') as f:
             np.savetxt(f, np.c_[fs, ts, rs], delimiter='\t', header=header)
         print 'Finished running AR coating simulation'
         t1 = time.time()
