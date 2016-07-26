@@ -11,14 +11,13 @@ import time
 import matplotlib.pyplot as plt
 import numpy as np
 
+'''
+TODO
 
-# TODO
-#
-# 7/24 - Implement freq to wavelength conversion
-# 7/24 - Write load_data() function
-# 
-#
+7/26
+    * Debug _convert_to_wavelength(). The plot output looks funny....
 
+'''
 
 
 class Plot:
@@ -72,6 +71,25 @@ class Plot:
     def __repr__(self):
         return '{type} plot'.format(type=self.type)
 
+    def _convert_to_wavelength(self, frequencies):
+        ''' Converts frequencies to wavelength. Ignores division by zero
+        errors and sets results of division by zero to 0.
+        
+        Arguments
+        ---------
+        frequencies : array
+            An array of frequencies given in hertz
+
+        Returns
+        -------
+        wavelengths : array
+            An array of wavelengths computed from the input frequency array
+        '''
+        with np.errstate(divide='ignore', invalid='ignore'):
+            wavelengths = np.true_divide(3e8, frequencies)
+            wavelengths[np.isinf(wavelengths)] = 0.
+        return wavelengths
+        
     def _shape_data(self):
         ''' Does some basic data manipulation based on plot attributes
         such as preferred units
@@ -83,12 +101,12 @@ class Plot:
                 self.data[0] = self.data[0]/freq_units[self.frequency_units]
             except:
                 raise ValueError('Unrecognized frequency units. See plotter.Plot() docstring for accepted units.')
-#        else:
-#            try:
-#                data[0] = 3e8/data[0]
-#                data[0] = data[0]/wave_units[self.wavelength_units]
-#            except:
-#                raise ValueError('Unrecognized frequency units. See plotter.Plot() docstring for accepted units.')
+        else:
+            try:
+                self.data[0] = self._convert_to_wavelength(self.data[0])
+                self.data[0] = self.data[0]/wave_units[self.wavelength_units]
+            except:
+                raise ValueError('Unrecognized wavelength units. See plotter.Plot() docstring for accepted units.')
         return
         
     def load_data(self, data):
