@@ -71,40 +71,26 @@ class Plot:
 
     def __repr__(self):
         return '{type} plot'.format(type=self.type)
+
+    def _shape_data(self):
+        ''' Does some basic data manipulation based on plot attributes
+        such as preferred units
+        '''
+        freq_units = {'Hz':1, 'KHz':10**3, 'MHz':10**6, 'GHz':10**9, 'THz':10**12}
+        wave_units = {'m':1, 'cm':10**-2, 'mm':10**-3, 'um':10**-6, 'micron':10**-6}
+        if self.vs_frequency:
+            try:
+                self.data[0] = self.data[0]/freq_units[self.frequency_units]
+            except:
+                raise ValueError('Unrecognized frequency units. See plotter.Plot() docstring for accepted units.')
+#        else:
+#            try:
+#                data[0] = 3e8/data[0]
+#                data[0] = data[0]/wave_units[self.wavelength_units]
+#            except:
+#                raise ValueError('Unrecognized frequency units. See plotter.Plot() docstring for accepted units.')
+        return
         
-    def set_title(self, title):
-        ''' Set the plot title
-
-        Arguments
-        ---------
-        title : string
-            The title of the plot
-        '''
-        self.title = title
-        return
-
-    def set_ylabel(self, ylabel):
-        ''' Set the y-axis label
-
-        Arguments
-        ---------
-        ylabel : string
-            The label for the y-axis
-        '''
-        self.ylabel = ylabel
-        return
-
-    def set_xlabel(self, xlabel):
-        ''' Set the x-axis label
-
-        Arguments
-        ---------
-        xlabel : string
-            The label for the x-axis
-        '''
-        self.xlabel = xlabel
-        return
-
     def load_data(self, data):
         ''' Load a new set of data while retaining other plot
         characteristics
@@ -119,11 +105,25 @@ class Plot:
         self.raw_data = data
         return
 
-    def revert_data(self):
-        ''' Resets the data to its original, 'as-loaded' form
+    def make_plot(self):
+        ''' Draws a plot of the loaded data
+
+        Arguments
+        ---------
+        data : array
+            A 2-element array where the first element is a set of
+            frequencies (or wavelengths) and the second elements
+            is a set of transmissions (or reflections)
         '''
-        self.data = self.raw_data
-        return
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.set_title(self.title)
+        ax.set_ylabel(self.ylabel)
+        ax.set_xlabel(self.xlabel)
+        self._shape_data()
+        ax.plot(self.data[0], self.data[1])
+        plt.savefig('artools/plots/my_plot_{t}.pdf'.format(t=time.ctime(time.time())), \
+                        bbox_inches='tight')
 
     def plot_vs_freq(self):
         ''' Plot the data vs frequency
@@ -137,50 +137,51 @@ class Plot:
         self.vs_frequency = False
         return
 
+    def revert_data(self):
+        ''' Resets the data to its original, 'as-loaded' form
+        '''
+        self.data = self.raw_data
+        return
+
+    def set_title(self, title):
+        ''' Set the plot title
+
+        Arguments
+        ---------
+        title : string
+            The title of the plot
+        '''
+        self.title = title
+        return
+
+    def set_xlabel(self, xlabel):
+        ''' Set the x-axis label
+
+        Arguments
+        ---------
+        xlabel : string
+            The label for the x-axis
+        '''
+        self.xlabel = xlabel
+        return
+
+    def set_ylabel(self, ylabel):
+        ''' Set the y-axis label
+
+        Arguments
+        ---------
+        ylabel : string
+            The label for the y-axis
+        '''
+        self.ylabel = ylabel
+        return
+
     def show_attributes(self):
         ''' Convenience function to display all the attributes of the plot
         '''
         print'The plot attributes are:\n'
         pprint.pprint(vars(self))
         return
-
-    def shape_data(self, data):
-        ''' Does some basic data manipulation based on plot attributes
-        such as preferred units
-        '''
-        freq_units = {'Hz':1, 'KHz':10**3, 'MHz':10**6, 'GHz':10**9, 'THz':10**12}
-        wave_units = {'m':1, 'cm':10**-2, 'mm':10**-3, 'um':10**-6, 'micron':10**-6}
-        if self.vs_frequency:
-            try:
-                data[0] = data[0]/freq_units[self.frequency_units]
-            except:
-                raise ValueError('Unrecognized frequency units. See plotter.Plot() docstring for accepted units.')
-#        else:
-#            try:                
-#                data[0] = 3e8/data[0]
-#                data[0] = data[0]/wave_units[self.wavelength_units]
-#            except:
-#                raise ValueError('Unrecognized frequency units. See plotter.Plot() docstring for accepted units.')
-        return data
-
-    def make_plot(self):
-        ''' Draws a plot of the loaded data
-
-        Arguments
-        ---------
-        data : array
-            A 2-element array where the first element is a set of 
-            frequencies (or wavelengths) and the second elements
-            is a set of transmissions (or reflections)
-        '''
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        ax.set_title(self.title)
-        ax.set_ylabel(self.ylabel)
-        ax.set_xlabel(self.xlabel)
-        ax.plot(self.data[0], self.data[1])
-        plt.savefig('artools/plots/my_plot_{t}.pdf'.format(t=time.ctime(time.time())), \
-                        bbox_inches='tight')
 
 
 class ReflectionPlot(Plot):
