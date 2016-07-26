@@ -244,12 +244,12 @@ class Builder:
         Defaults to 'TerminatorLayer('alumina')'.
     '''
     def __init__(self):
+        self.freq_sweep = 0.
+        self.optimization_frequency = 160e9        # given in Hz, i.e. 160 GHz
         self.source = SourceLayer('vacuum')
-        self.terminator = TerminatorLayer('alumina')
         self.stack = []
         self.structure = []
-        self.freq_sweep = 0.
-        self.optimization_frequency = 160e9 # 160 GHz
+        self.terminator = TerminatorLayer('alumina')
 
     def _calc_R_T_amp(self, polarization, n, delta):
         ''' Calculates the reflected and transmitted amplitudes
@@ -533,7 +533,7 @@ class Builder:
         T = (s_data + p_data)/2
         return T
 
-    def add_layer(self, material, thickness=5.0, units='mil', stack_position=-1):
+    def add_layer(self, material, thickness=5.0, units='mil', type=None, stack_position=-1):
         ''' Create a layer and add it to the AR coating stack
 
         Arguments
@@ -550,6 +550,10 @@ class Builder:
             The thickness of the AR coating layer material. Assumed to
             be given in 'mil' (i.e. thousandths of an inch) unless 
             otherwise stated
+        type : string
+            The layer type. Defaults to 'None' type, which corresponds to
+            an AR layer. Other options are 'substrate' or 'bonding', which
+            correspond to substrate and bonding layers, respectively.
         units : string
             The units of length for the AR coating layer. Must be one of:
                 { 'mil'   ,
@@ -560,14 +564,41 @@ class Builder:
                   'in'    ,
                   'micron'}
         '''
-        layer = Layer(material)
-        layer.thickness = thickness
-        layer.units = units
-        pos_check = -1
-        if (pos_check == stack_position):
-            self.stack.append(layer)
+        if type == None:
+            layer = Layer(material)
+            layer.thickness = thickness
+            layer.units = units
+            pos_check = -1
+            if (pos_check == stack_position):
+                self.stack.append(layer)
+            else:
+                self.stack.insert(stack_position, layer)
         else:
-            self.stack.insert(stack_position, layer)
+            type = type.lower()
+            if type == 'substrate':
+                layer = SubstrateLayer(material)
+                layer.thickness = thickness
+                layer.units = units
+                pos_check = -1
+                if (pos_check == stack_position):
+                    self.stack.append(layer)
+                else:
+                    self.stack.insert(stack_position, layer)
+            elif type == 'bonding':
+                layer = BondingLayer(material)
+                layer.thickness = thickness
+                layer.units = units
+                pos_check = -1
+                if (pos_check == stack_position):
+                    self.stack.append(layer)
+                else:
+                    self.stack.insert(stack_position, layer)
+        return
+
+    def display_sim_parameters(self):
+        ''' Displays all the simulation parameters in one place
+        '''
+        pprint.pprint(vars(self))
         return
 
     def clear_stack(self):
