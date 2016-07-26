@@ -2,14 +2,14 @@
 
 ### Dependencies:
 ***
-*glob
-*matplotlib
-*numpy
-*os
-*pprint
-*scipy
-*shutil
-*time
+* glob
+* matplotlib
+* numpy
+* os
+* pprint
+* scipy
+* shutil
+* time
 
 ### Work flow:
 ***
