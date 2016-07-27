@@ -1,8 +1,8 @@
-''' Simulator contains the tools needed to set up a multilayer antireflection coating
+"""Simulator contains the tools needed to set up a multilayer antireflection coating
 simulation.
 
 Based on transfer matrix method outlined in Hou, H.S. 1974.
-'''
+"""
 
 # Author: Andrew Nadolski (with lots of help from previous work by Colin Merkel, Steve Byrnes, and Toki Suzuki)
 # Filename: simulator.py
@@ -36,7 +36,7 @@ import scipy as sp
 
 
 class Layer:
-    ''' Represents a layer in the AR coating.
+    """Represents a layer in the AR coating.
 
     Arguments
     ----------
@@ -60,7 +60,7 @@ class Layer:
     losstangent : float
         The loss tangent of the material as found in the dictionary
         of materials contained in _materials.py.
-    '''
+    """
     def __init__(self, material):
         self.name = material.lower()
         self.thickness = 5.
@@ -80,9 +80,9 @@ class Layer:
         return '%r (AR layer)' % self.name
 
     def get_index(self):
-        ''' Return the index of refraction of a material given its dielectric
+        """Return the index of refraction of a material given its dielectric
         constant.
-        '''
+        """
         return (np.sqrt(self.dielectric))
 
     def ideal_thickness(self, opt_freq=160e9):
@@ -99,25 +99,25 @@ class Layer:
 
 
 class BondingLayer(Layer):
-    ''' A special case of 'Layer'; represents the adhesive layer used in the AR stack.
+    """A special case of ``Layer``; represents the adhesive layer used in the AR stack.
 
     Arguments
     ---------
     material : string
         A key in the dictionary of materials found in _materials.py. You can view
-        these materials by calling 'show_available_materials()'.
+        these materials by calling ``show_available_materials()``.
 
     Attributes
     ----------
     thickness : float
-        The thickness of the bonding layer. Defaults to 40e-6 meters, which is
+        The thickness of the bonding layer. Defaults to 100e-6 meters, which is
         the typical thickness of a Stycast 1266 layer. This may be changed as is 
         necessary, but the units must (eventually) be converted to meters before 
         being fed to the simulator.
     type : string
         A flag for the model. Defaults to 'Bonding layer'. Should not be changed, 
         or things may break.
-    '''
+    """
     def __init__(self, material):
         Layer.__init__(self, material)
         self.thickness = 100.e-6 # typical Stycast 1266 thickness
@@ -128,25 +128,25 @@ class BondingLayer(Layer):
 
 
 class SourceLayer(Layer):
-    ''' A special case of 'Layer'; represents the layer from which the simulated wave 
+    """A special case of ``Layer``; represents the layer from which the simulated wave 
     emanates.
 
     Arguments
     ---------
     material : string
         A key in the materials dictionary found in _materials.py. You can view
-        these materials by calling 'show_available_materials()'.
+        these materials by calling ``show_available_materials()``.
 
     Attributes
     ----------
     thickness : float
-        The thickness of the source layer. Defaults to 'numpy.inf' since the model
+        The thickness of the source layer. Defaults to ``numpy.inf`` since the model
         doesn't care about the thickness of source layer. The thickness of the
         source layer should not be changed under normal operations.
     type : string
         A flag for the model. Defaults to 'Source'. Should not be changed, or things
         may break.
-    '''
+    """
     def __init__(self, material):
         Layer.__init__(self, material)
         self.thickness = np.inf
@@ -157,26 +157,26 @@ class SourceLayer(Layer):
 
 
 class SubstrateLayer(Layer):
-    ''' A special case of 'Layer'; represents the layer to which the AR coating is 
+    """A special case of ``Layer``; represents the layer to which the AR coating is 
     attached.
 
     Arguments
     ---------
     material : string
         A key in the materials dictionary found in _materials.py. You can view
-        these materials by calling 'show_materials()'.
+        these materials by calling ``show_materials()``.
 
     Attributes
     ----------
     thickness : float
-        The thickness of the substrate layer. Defaults to 250. mils, which is 
+        The thickness of the substrate layer. Defaults to 250 mils, which is 
         the typical thickness of a sample puck used in the Berkeley FTS setup.
         This may be changed as is necessary, but the units must (eventually) be
         converted to meters before being fed to the simulator.
     type : string
-        A flag for the model. Defaults to 'Substrate'. Should not be changed, or things
-        may break.
-    '''
+        A flag for the model. Defaults to 'Substrate'. Should not be changed,
+        or things may break.
+    """
     def __init__(self, material):
         Layer.__init__(self, material)
         self.thickness = 250. #mils
@@ -187,25 +187,26 @@ class SubstrateLayer(Layer):
 
 
 class TerminatorLayer(Layer):
-    ''' A special case of 'Layer'; represents the layer upon which the simulated wave 
+    """A special case of ``Layer``; represents the layer upon which the simulated wave 
     terminates.
 
     Arguments
     ---------
     material : string
         A key in the materials dictionary found in _materials.py. You can view
-        these materials by calling 'show_available_materials()'.
+        these materials by calling ``show_available_materials()``.
 
     Attributes
     ----------
     thickness : float
-        The thickness of the terminating layer. Defaults to 'numpy.inf' since the model
-        doesn't care about the thickness of the terminating layer. The thickness of the 
-        terminating layer should not be changed under normal operations.
+        The thickness of the terminating layer. Defaults to ``numpy.inf`` since
+        the model doesn't care about the thickness of the terminating layer. 
+        The thickness of the terminating layer should not be changed under 
+        normal operations.
     type : string
-        A flag for the model. Defaults to 'Terminator'. Should not be changed, or things
-        may break.
-    '''
+        A flag for the model. Defaults to 'Terminator'. Should not be changed, 
+        or things may break.
+    """
     def __init__(self, material):
         Layer.__init__(self, material)
         self.thickness = np.inf
@@ -216,13 +217,13 @@ class TerminatorLayer(Layer):
 
 
 class Builder:
-    ''' Represents the main body of the simulator code.
+    """Represents the main body of the simulator code.
 
     Attributes
     ----------
     freq_sweep : numpy array
         The range of frequencies to be simulated. Defaults to 0. Set a frequency
-        sweep by calling 'set_freq_sweep()'.
+        sweep by calling ``set_freq_sweep()``.
     optimization_frequency : float
         The frequency (in Hz) at which to calculate the ideal thickness for a given
         material. Defaults to 160e9 Hz (160 GHz).
@@ -232,14 +233,14 @@ class Builder:
     structure : list
         The layers incorporated in the simulation INCLUDING the source and
         terminator layers. Defaults to empty list. The list is populated 
-        by creating layers and calling 'interconnect()'.
+        by creating layers and calling ``_interconnect()``.
     source : object
-        'Layer' object 'SourceLayer' that defines where the wave emanates from. 
-        Defaults to 'SourceLayer('vacuum')'.
+        ``Layer`` object ``SourceLayer`` that defines where the wave emanates from. 
+        Defaults to ``SourceLayer('vacuum')``.
     terminator : object
-        'Layer' object 'Sourcelayer' that defines where the wave terminates.
-        Defaults to 'TerminatorLayer('alumina')'.
-    '''
+        ``Layer`` object ``TerminatorLayer`` that defines where the wave terminates.
+        Defaults to ``TerminatorLayer('alumina')``.
+    """
     def __init__(self):
         self.freq_sweep = 0.
         self.optimization_frequency = 160e9        # given in Hz, i.e. 160 GHz
@@ -249,7 +250,7 @@ class Builder:
         self.terminator = TerminatorLayer('alumina')
 
     def _calc_R_T_amp(self, polarization, n, delta):
-        ''' Calculates the reflected and transmitted amplitudes
+        """Calculates the reflected and transmitted amplitudes
 
         Arguments
         ---------
@@ -265,7 +266,7 @@ class Builder:
         (r, t) : tuple
             A tuple where 'r' is the reflected amplitude, and 't' is the
             transmitted amplitude
-        '''
+        """
 
         t_amp = np.zeros((len(self.structure), len(self.structure)), dtype=complex)
         r_amp = np.zeros((len(self.structure), len(self.structure)), dtype=complex)
@@ -292,10 +293,10 @@ class Builder:
         return (r, t)
 
     def _d_converter(self):
-        ''' Checks the units of all elements in the connected ar coating
+        """Checks the units of all elements in the connected ar coating
         stack. Converts the lengths of the layers to meters if they are
         not already in meters.
-        '''
+        """
         units = {'um':1e-6, 'mm':1e-3, 'inch':2.54e-2, 'in':2.54e-2,\
                      'micron':1e-6, 'mil':2.54e-5, 'm':1.0}
         for i in self.stack:
@@ -303,7 +304,7 @@ class Builder:
         return
         
     def _find_ks(self, n, frequency, tan, lossy=True):
-        ''' Calculate the wavevectors
+        """Calculate the wavevectors
 
         Arguments
         ---------
@@ -315,13 +316,13 @@ class Builder:
         tan : array
             An array of loss tangents, ordered from vacuum to substrate
         lossy : boolean
-            If 'True' the wavevector will be found for a lossy material.
-            If 'False' the wavevector will be found for lossless material.
+            If ``True`` the wavevector will be found for a lossy material.
+            If ``False`` the wavevector will be found for lossless material.
         Returns
         -------
         k : complex
             The complex wavevector, k
-        '''
+        """
         if lossy:
             k = 2*np.pi*n*frequency*(1-0.5j*tan)/3e8
         else:
@@ -329,7 +330,7 @@ class Builder:
         return k
 
     def _find_k_offsets(self, k, d):
-        ''' Calculate the wavevector offset, delta
+        """Calculate the wavevector offset, delta
 
         Arguments
         ---------
@@ -342,7 +343,7 @@ class Builder:
         -------
         delta : array
             The wavevector offset
-        '''
+        """
         olderr = sp.seterr(invalid= 'ignore') # turn off 'invalid multiplication' error;
                                               # it's just the 'inf' boundaries
         delta = k * d
@@ -350,17 +351,17 @@ class Builder:
         return delta
 
     def _get_R(self, net_r_amp):
-        ''' Return fraction of reflected power.
+        """Return fraction of reflected power.
 
         Arguments
         ---------
         net_r_amp : float
             The net reflection amplitude after calculating the transfer matrix.
-        '''
+        """
         return np.abs(net_r_amp)**2
 
     def _get_T(self, polarization, net_t_amp, n_i, n_f, theta_i=0., theta_f=0.):
-        ''' Return the fraction of transmitted power.
+        """Return the fraction of transmitted power.
 
         Arguments
         ---------
@@ -376,7 +377,7 @@ class Builder:
             The angle of incidence at interface 'i'. Default is 0.
         theta_f : float, optional
             The angle of incidence at interface 'f'. Default is 0.
-        '''
+        """
         if (polarization=='s'):
             return np.abs(net_t_amp**2) * (n_f/n_i)
         elif (polarization=='p'):
@@ -385,13 +386,13 @@ class Builder:
             raise ValueError("Polarization must be 's' or 'p'")
 
     def _interconnect(self):
-        ''' Connect all the AR coating layer objects.
+        """Connect all the AR coating layer objects.
 
         Arguments
         ---------
         stack : list
-            Contains a list of 'Layer' objects, ordered from source to terminator.
-        '''
+            Contains a list of ``Layer`` objects, ordered from source to terminator.
+        """
         self.clear_stack()
         self.structure.append(self.source)
         for i in range(len(self.stack)):
@@ -400,7 +401,7 @@ class Builder:
         return
 
     def _make_2x2(self, A11, A12, A21, A22, dtype=float):
-        ''' Return a 2x2 array quickly.
+        """Return a 2x2 array quickly.
 
         Arguments
         ---------
@@ -414,7 +415,7 @@ class Builder:
             Array element [1,1].
         dtype : dtype, optional
             The datatype of the array. Defaults to float.
-        '''
+        """
         array = np.empty((2,2), dtype=dtype)
         array[0,0] = A11
         array[0,1] = A12
@@ -423,7 +424,7 @@ class Builder:
         return array
 
     def _r_at_interface(self, polarization, n_1, n_2):
-        ''' Calculate the reflected amplitude at an interface.
+        """Calculate the reflected amplitude at an interface.
 
         Arguments
         ---------
@@ -437,7 +438,7 @@ class Builder:
         Returns
         -------
         reflected amplitude : float
-        '''
+        """
         if polarization == 's':
             return ((n_1 - n_2)/(n_1 + n_2))
         elif polarization == 'p':
@@ -446,28 +447,28 @@ class Builder:
             raise ValueError("Polarization must be 's' or 'p'")
 
     def _sort_ns(self):
-        ''' Organizes the layers' indices of refraction in the simulation
+        """Organizes the refractive indices of the layers in the simulation
 
         Returns
         -------
         n : array
             The ordered list of indices of refraction, from incident
             medium to terminating medium
-        '''
+        """
         n = []
         [n.append(layer.get_index()) for layer in self.structure]
         n = np.asarray(n)
         return n
 
     def _sort_ds(self):
-        ''' Organizes the layers' thicknesses in the simulation
+        """Organizes the layers' thicknesses in the simulation
 
         Returns
         -------
         d : array
             The ordered list of indices thicknesses, from incident
             medium to terminating medium
-        '''
+        """
         d = []
         [d.append(layer.thickness) for layer in self.structure if \
              (layer.type == 'Layer' or layer.type == 'Substrate')]
@@ -477,21 +478,21 @@ class Builder:
         return d
 
     def _sort_tans(self):
-        ''' Organizes the layers' loss tangents in the simulation
+        """Organizes the loss tangents of the layers in the simulation
 
         Returns
         -------
         tan : array
             The ordered list of loss tangents, from incident
             medium to terminating medium
-        '''
+        """
         tan = []
         [tan.append(layer.losstangent) for layer in self.structure]
         tan = np.asarray(tan)
         return tan
 
     def _t_at_interface(self, polarization, n_1, n_2):
-        ''' Calculate the transmission amplitude at an interface.
+        """Calculate the transmission amplitude at an interface.
 
         Arguments
         ---------
@@ -505,7 +506,7 @@ class Builder:
         Returns
         -------
         transmitted amplitude : float
-        '''
+        """
         if polarization == 's':
             return 2*n_1/(n_1 + n_2)
         elif polarization == 'p':
@@ -514,7 +515,7 @@ class Builder:
             raise ValueError("Polarization must be 's' or 'p'")
 
     def _unpolarized_simulation(self, frequency, theta_0=0):
-        ''' Handle the special case of unpolarized light by running the model
+        """Handle the special case of unpolarized light by running the model
         for both 's' and 'p' polarizations and computing the mean of the two
         results.
 
@@ -524,14 +525,14 @@ class Builder:
             The frequency (in Hz) at which to evaluate the model.
         theta_0 : float, optional
             The angle of incidence at the initial interface. Default is 0.
-        '''
+        """
         s_data = self.simulate(frequency, 's', theta_0)
         p_data = self.simulate(frequency, 'p', theta_0)
         T = (s_data + p_data)/2
         return T
 
     def add_layer(self, material, thickness=5.0, units='mil', type=None, stack_position=-1):
-        ''' Create a layer and add it to the AR coating stack
+        """Create a layer and add it to the AR coating stack
 
         Arguments
         ---------
@@ -539,19 +540,19 @@ class Builder:
             A key in the dictionary of materials found in _materials.py.
             You can view these materials by calling 
             'show_materials()'.
-        stack_position : int
+        stack_position : int, optional
             The position of the layer in the AR coating stack, indexed
             from 0. Default is -1 (i.e., layer is automatically added
             to the end (bottom?) of the stack.
-        thickness : float
+        thickness : float, optional
             The thickness of the AR coating layer material. Assumed to
             be given in 'mil' (i.e. thousandths of an inch) unless 
             otherwise stated
-        type : string
+        type : string, optional
             The layer type. Defaults to 'None' type, which corresponds to
             an AR layer. Other options are 'substrate' or 'bonding', which
             correspond to substrate and bonding layers, respectively.
-        units : string
+        units : string, optional
             The units of length for the AR coating layer. Must be one of:
                 { 'mil'   ,
                   'inch'  ,
@@ -560,7 +561,7 @@ class Builder:
                   'um'    ,
                   'in'    ,
                   'micron'}
-        '''
+        """
         if type == None:
             layer = Layer(material)
             layer.thickness = thickness
@@ -593,32 +594,32 @@ class Builder:
         return
 
     def display_sim_parameters(self):
-        ''' Displays all the simulation parameters in one place
-        '''
+        """Displays all the simulation parameters in one place
+        """
         pprint.pprint(vars(self))
         return
 
     def clear_stack(self):
-        ''' Remove all elements from the current AR 'structure'.
-        '''
+        """Remove all elements from the current AR ``structure``.
+        """
         self.structure = []
         return
 
     def remove_layer(self, layer_pos):
-        ''' Removes the specified layer from the AR coating stack
+        """Removes the specified layer from the AR coating stack
 
         Arguments
         ---------
         layer_pos : int
             The index of the layer to remove from the AR coating stack
-        '''
+        """
         self.stack.pop(layer_pos)
         return
 
     def run_sim(self):
-        ''' Takes the attributes of the Builder() object and executes
-        the simulation at each frequency in Builder().freq_sweep. The
-        output is saved to a columnized, tabseparated text file.
+        """Takes the attributes of the ``Builder()`` object and executes
+        the simulation at each frequency in ``Builder().freq_sweep``. The
+        output is saved to a columnized, tab-separated text file.
 
         Returns
         -------
@@ -627,7 +628,7 @@ class Builder:
             frequencies, the second elements is a list of the
             transmissions at each frequency, and the third is a list of
             the reflections at each frequency.
-        '''
+        """
         t0 = time.time()
         print 'Beginning AR coating simulation'
         self._d_converter()
@@ -656,7 +657,7 @@ class Builder:
         return results
 
     def set_freq_sweep(self, lower_bound, upper_bound, resolution=1):
-        ''' Set the frequency range over which the simulation will run.
+        """Set the frequency range over which the simulation will run.
         
         Arguments
         ---------
@@ -667,25 +668,25 @@ class Builder:
         reolution : float, optional
             The interval at which to sample the frequency range, given in GHz.
             Defaults to 1 GHz.
-        '''
+        """
         self.freq_sweep = np.linspace(lower_bound*1e9, upper_bound*1e9, \
                                           (upper_bound-lower_bound)/resolution)
         return
 
     def set_source_layer(self, material='vacuum'):
-        ''' Change the default source layer from vacuum to something else.
+        """Change the default source layer from vacuum to something else.
 
         Arguments
         ---------
         material : string, optional
             A key in the dielectrics dictionary. If 'material' is not specified,
             defaults to 'vacuum'.
-        '''
+        """
         self.source = SourceLayer(material)
         return
 
     def set_terminator_layer(self, material='alumina'):
-        ''' Change the default layer from alumina to something else. If running an FTS
+        """Change the default layer from alumina to something else. If running an FTS
         simulation, the terminator layer should be set as 'vacuum'.
 
         Arguments
@@ -693,15 +694,15 @@ class Builder:
         material : string, optional
             A key in the dielectrics dictionary. If 'material' is not specified,
             defaults to 'alumina'.
-        '''
+        """
         self.terminator = TerminatorLayer(material)
         return
 
     def show_materials(self):
-        ''' List the materials with known properties. The simulator can handle these
+        """List the materials with known properties. The simulator can handle these
         materials. The listed material names are keys in the materials properties 
         dictionary. 
-        '''
+        """
         print '\nThe materials with known dielectric properties are:\n'
         pprint.pprint(mats.Electrical.DIELECTRIC)
         print '\nThe materials with known loss tangents are:\n'
@@ -709,7 +710,7 @@ class Builder:
         return
 
     def sim_single_freq(self, frequency, polarization='s', theta_0=0):
-        ''' Run the model simulation for a single frequency.
+        """Run the model simulation for a single frequency.
 
         Arguments
         ---------
@@ -733,7 +734,7 @@ class Builder:
                 'T' : numpy array; the total transmission through the model.
                 'R' : numpy array; the total reflection through the model.
                     }
-        '''
+        """
         # check the desired polarization
 #        if polarization == 'u':
 #            return self._unpolarized_simulation(frequency)
@@ -750,7 +751,7 @@ class Builder:
         return result
 
     def snell(self, indices, theta_0):
-        ''' Caclulate the Snell angles for the entire model.
+        """Caclulate the Snell angles for the entire model.
 
         Arguments
         ---------
@@ -759,7 +760,7 @@ class Builder:
             ordered from source to terminator.
         theta_0 : float
             The angle of incidence at the first interface.
-        '''
+        """
         return sp.arcsin(np.real_if_close(n_list[0]*np.sin(th_0) / n_list))
 
 
