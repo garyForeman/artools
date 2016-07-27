@@ -1,4 +1,5 @@
-# artools #### a simple anti-reflection coating simulator
+# artools
+#### a simple anti-reflection coating simulator
 
 ### Purpose:
 ***
