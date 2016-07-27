@@ -1,5 +1,7 @@
 # artools
-#### a simple anti-reflection coating simulator
+#### A simple anti-reflection coating simulator
+***
+***
 
 ### Purpose:
 ***
@@ -47,4 +49,13 @@ my_plot.load_data(results)
 my_plot.make_plot()
 ```
 
-### For the future:
+### Future improvements:
+***
+* Expand library of materials and material properties
+* Implement temperature-dependent loss
+* Implement non-normal incidence starting conditions
+* 
+
+### Acknowledgements:
+***
+Thanks to Colin Merkel, Aritoki Suzuki, and Steve Byrnes 
