@@ -1,14 +1,14 @@
-''' materials is a reference module. It contains properties of materials
+"""A reference module. It contains properties of materials
 that are frequently used in AR coating simulations.
-'''
+"""
 # Author: Andrew Nadolski
 # Filename: materials.py
 
 
 class Electrical:	
-	''' This class contains the electrical properties of the materials that 
-	we use most often.
-	'''
+	"""Contains the electrical properties of the materials that 
+	are often used in AR coating simulations.
+	"""
 	
 
 	DIELECTRIC = {
@@ -47,7 +47,7 @@ class Electrical:
 
 		
 class Thermal:
-	'''This class contains the thermal properties of the materials that 
+	"""Contains the thermal properties of the materials that 
 	we use most often.
-	'''
+	"""
 	pass
