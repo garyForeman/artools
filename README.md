@@ -1,10 +1,10 @@
-# artools
+# artools #### a simple anti-reflection coating simulator
 
-### Purpose
+### Purpose:
 ***
-artools is designed to allow a user to easily simulate multilayer anti-reflection coating performance. The program calculates reflection and transmission at each interface, and also accounts for dielectric loss as light propagates through the media. 
+artools is designed to allow a user to easily simulate and visualize anti-reflection coating performance. The coating can be composed of a single material, or many layers of different materials. The program calculates reflection and transmission at each interface, accounting for dielectric loss as light propagates through the media. The results can be easily visualized with artools' plotting functionality. The artools plotting routines are matplotlib functions wrapped and combined to generate plots that are useful for assessing transmission or reflection of an electromagnetic wave.
 
-The program is intended to be easy to use; much of the "heavy-lifting" is hidden from the user in interactive mode (e.g. iPython). 
+The program is intended to be easy to use, so much of the "heavy-lifting" is hidden from the user in interactive mode (e.g. iPython) by using single underscore notation.
 
 ### Dependencies:
 ***
@@ -17,8 +17,14 @@ The program is intended to be easy to use; much of the "heavy-lifting" is hidden
 * shutil
 * time
 
+### How it works:
+***
+The results of the simulation are calculated using a transfer matrix method (TMM). This particular transfer matrix method was written by H.S. Hou and published in Applied Optics Volume 13 Number 8, 1974. The Hou TMM is a computationally efficient means of calculating reflection and transmission through multilayer media.
+
 ### Work flow:
 ***
+The 
+
 An example follows below:
 
 ```python
@@ -39,3 +45,5 @@ my_plot = ar.plotter.TransmissionPlot()
 my_plot.load_data(results)
 my_plot.make_plot()
 ```
+
+### For the future:
