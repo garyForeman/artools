@@ -42,6 +42,13 @@ class Plot:
         Once the data are loaded, this copy of the data are kept in the
         'as-loaded' state so they may be reverted to easily. Any call to
         ``load_data()`` will overwrite this copy.
+    save_name : string
+        The name under which the output plot is saved. Defaults to
+        'my_plot_XXXXX.pdf' where `XXXXX` is a time-stamp tp avoid overwriting
+        previous plots.
+    save_path : string
+        The path to which the output plot will be saved. Defaults to the current
+        working directory
     title : string
         The title of the plot
     type : string
@@ -62,6 +69,8 @@ class Plot:
         self.data = None
         self.frequency_units = 'GHz'
         self.raw_data = None
+        self.save_name = 'my_plot_{t}.pdf'.format(t=time.ctime(time.time()))
+        self.save_path = '.'
         self.title = 'Generic plot'
         self.type = 'Generic'
         self.vs_frequency = True
@@ -91,6 +100,21 @@ class Plot:
             wavelengths[np.isinf(wavelengths)] = 0.
         return wavelengths
         
+    def _make_save_path(self):
+        """Assembles the full save path for the output plot
+        
+        Returns
+        -------
+        path : string
+            The full path to which the output plot will be saved
+        """
+        if self.save_name.endswith('.pdf'): 
+            path = os.path.join(self.save_path, self.save_name)
+        else:
+            self.save_name = self.save_name+'.pdf'
+            path = os.path.join(self.save_path, self.save_name)
+        return path
+
     def _shape_data(self):
         """Does some basic data manipulation based on plot attributes
         such as preferred units
@@ -141,8 +165,8 @@ class Plot:
         ax.set_xlabel(self.xlabel)
         self._shape_data()
         ax.plot(self.data[0], self.data[1])
-        plt.savefig('artools/plots/my_plot_{t}.pdf'.format(t=time.ctime(time.time())), \
-                        bbox_inches='tight')
+        path = self._make_save_path()
+        plt.savefig(path, bbox_inches='tight')
 
     def plot_vs_freq(self):
         """Plot the data vs frequency

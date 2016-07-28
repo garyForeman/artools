@@ -432,8 +432,11 @@ class Builder:
         path : string
             The full path to the save destination for the simulation results
         """
-        self.save_name = self.save_name+'.txt'
-        path = os.path.join(self.save_path, self.save_name)
+        if self.save_name.endswith('.txt'):
+            path = os.path.join(self.save_path, self.save_name)
+        else:
+            self.save_name = self.save_name+'.txt'
+            path = os.path.join(self.save_path, self.save_name)
         return path
 
     def _r_at_interface(self, polarization, n_1, n_2):
