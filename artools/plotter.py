@@ -198,7 +198,7 @@ class Plot:
     def show_attributes(self):
         """Convenience function to display all the attributes of the plot
         """
-        print'The plot attributes are:\n'
+        print('The plot attributes are:\n')
         pprint.pprint(vars(self))
         return
 
