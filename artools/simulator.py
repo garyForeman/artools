@@ -9,9 +9,8 @@ Based on transfer matrix method outlined in Hou, H.S. 1974.
 
 """
 ###### TODO ######
-7/25
-
-    * Write convenience function to display all attributes of a layer
+7/28
+    * Write function to handle saving sim results to different paths
 """
 
 import glob
@@ -66,6 +65,12 @@ class Layer:
 
     def __repr__(self):
         return '%r (AR layer)' % self.name
+
+    def display_layer_parameters(self):
+        """Displays the attributes of the layer.
+        """
+        pprint.pprint(vars(self))
+        return
 
     def get_index(self):
         """Return the index of refraction of a material given its dielectric
@@ -215,6 +220,13 @@ class Builder:
     optimization_frequency : float
         The frequency (in Hz) at which to calculate the ideal thickness for a given
         material. Defaults to 160e9 Hz (160 GHz).
+    save_name : string
+        The name under which the results of the simulation are saved. Defaults to
+        'transmission_data_XXXXX.txt' where `XXXXX` is a time-stamp to avoid
+        overwriting previous simulation results.
+    save_path : string
+        The path to which the simulation results will be saved. Defaults to the 
+        current working directory.
     source : object
         ``Layer`` object ``SourceLayer`` that defines where the wave emanates from.
         Defaults to ``SourceLayer('vacuum')``.
@@ -232,6 +244,8 @@ class Builder:
     def __init__(self):
         self.freq_sweep = 0.
         self.optimization_frequency = 160e9        # given in Hz, i.e. 160 GHz
+        self.save_name = 'transmission_data_{t}.txt'.format(t=time.ctime(time.time()))
+        self.save_path = '.'
         self.source = SourceLayer('vacuum')
         self.stack = []
         self.structure = []
@@ -409,6 +423,18 @@ class Builder:
         array[1,0] = A21
         array[1,1] = A22
         return array
+
+    def _make_save_path(self):
+        """Assembles the file name and path to the results file
+        
+        Returns
+        -------
+        path : string
+            The full path to the save destination for the simulation results
+        """
+        self.save_name = self.save_name+'.txt'
+        path = os.path.join(self.save_path, self.save_name)
+        return path
 
     def _r_at_interface(self, polarization, n_1, n_2):
         """Calculate the reflected amplitude at an interface.
@@ -636,7 +662,7 @@ class Builder:
         rs = np.asarray(r_list)
         results = np.array([fs, ts, rs])
         t = time.ctime(time.time())
-        fname = 'transmission_data_{t}.txt'.format(t=t)
+        fname = self._make_save_path()
         header = 'Frequency (Hz)\t\tTransmission amplitude\t\tReflection amplitude'
         with open(fname, 'wb') as f:
             np.savetxt(f, np.c_[fs, ts, rs], delimiter='\t', header=header)
