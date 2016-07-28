@@ -53,8 +53,9 @@ my_plot.make_plot()
 ***
 * Expand library of materials and material properties
 * Implement temperature-dependent loss
-* Implement non-normal incidence starting conditions
-* 
+* Implement non-normal starting angles
+* Implement emcee
+* GUI?
 
 ### Acknowledgements:
 ***
