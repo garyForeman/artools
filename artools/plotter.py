@@ -88,8 +88,8 @@ class Plot:
         self.type = 'Generic'
         self.vs_frequency = True
         self.wavelength_units = 'mm'
-        self.xlabel = 'X-axis'
-        self.ylabel = 'Y-axis'
+        self.xlabel = None
+        self.ylabel = None
 
     def __repr__(self):
         return '{type} plot'.format(type=self.type)
@@ -217,11 +217,17 @@ class Plot:
         """
         fig = plt.figure()
         ax = fig.add_subplot(111)
+        self.set_xlabel()
         ax.set_title(self.title)
         ax.set_ylabel(self.ylabel)
         ax.set_xlabel(self.xlabel)
         self._shape_data()
-        ax.plot(self.data[0], self.data[1])
+        if self.type == 'Transmission':
+            ax.plot(self.data[0], self.data[1])
+        elif self.type == 'Reflection':
+            ax.plot(self.data[0], self.data[2])
+        else:
+            ax.plot(self.data[0], self.data[0])
         if self.draw_bandpasses:
             self._draw_bandpasses()
         if self.draw_legend:
@@ -258,15 +264,22 @@ class Plot:
         self.title = title
         return
 
-    def set_xlabel(self, xlabel):
+    def set_xlabel(self, xlabel=None):
         """Set the x-axis label
 
         Arguments
         ---------
-        xlabel : string
-            The label for the x-axis
+        xlabel : string, optional
+            The label for the x-axis. Defaults to `None`. If `None`, x-axis
+            label is chosen based on the x-axis units
         """
-        self.xlabel = xlabel
+        if xlabel is None:
+            if self.vs_frequency:
+                self.xlabel = r'$\nu$'+' [{}]'.format(self.frequency_units)
+            else:
+                self.xlabel = r'$\lambda$'+' [{}]'.format(self.wavelength_units)
+        else:
+            self.xlabel = xlabel
         return
 
     def set_ylabel(self, ylabel):
