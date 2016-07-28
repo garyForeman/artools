@@ -44,7 +44,7 @@ class Plot:
         ``load_data()`` will overwrite this copy.
     save_name : string
         The name under which the output plot is saved. Defaults to
-        'my_plot_XXXXX.pdf' where `XXXXX` is a time-stamp tp avoid overwriting
+        'my_plot_XXXXX.pdf' where `XXXXX` is a time-stamp to avoid overwriting
         previous plots.
     save_path : string
         The path to which the output plot will be saved. Defaults to the current
