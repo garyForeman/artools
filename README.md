@@ -7,7 +7,7 @@
 ***
 artools is designed to allow a user to easily simulate and visualize anti-reflection coating performance. The coating can be composed of a single material, or many layers of different materials. The program calculates reflection and transmission at each interface, accounting for dielectric loss as light propagates through the media. The results can be easily visualized with artools' plotting functionality. The artools plotting routines are matplotlib functions wrapped and combined to generate plots that are useful for assessing transmission or reflection of an electromagnetic wave.
 
-The program is intended to be easy to use, so much of the "heavy-lifting" is hidden from the user in interactive mode (e.g. iPython) by using single underscore notation.
+The program is intended to be easy to use, so much of the heavy-lifting is hidden from the user in interactive mode (e.g. iPython) by using single underscore notation.
 
 ### Dependencies:
 ***
