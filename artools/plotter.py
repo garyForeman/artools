@@ -26,10 +26,18 @@ class Plot:
 
     Attributes
     ----------
-    data : numpy array
+    bandpasses : list
+        A list of bandpasses (tuples), where each element contains a lower and
+        upper bound, a color, a name, and an opacity. Bandpasses can be added
+        using ``add_bandpass()``.
+    data : array
         Defaults to 'None' type until the data to be plotted are loaded.
         Once data are loaded, any operations on the data happen to this instance.
         Any call to ``load_data()`` will overwrite this instance.
+    draw_bandpasses : boolean
+        If `True`, the contents of ``bandpasses`` is drawn on the plot. If 
+        `False`, the contents of ``bandpasses`` is ignored when drawing the
+        plot. Defaults to `False`.
     frequency_units : string
         The units to plot on the frequency axis, if it exists. Must be one of:
             'Hz',
@@ -37,7 +45,9 @@ class Plot:
             'MHz',
             'GHz',
             'THz'.
-    raw_data : numpy array
+    legend : boolean
+        If `True`, draws a legend on the plot. Defaults to `False`.
+    raw_data : array
         Defaults to 'None' type until the data to be plotted are loaded.
         Once the data are loaded, this copy of the data are kept in the
         'as-loaded' state so they may be reverted to easily. Any call to
@@ -66,7 +76,10 @@ class Plot:
         The y-axis label
     """
     def __init__(self):
+        self.bandpasses = []
         self.data = None
+        self.draw_bandpasses = False
+        self.draw_legend = False
         self.frequency_units = 'GHz'
         self.raw_data = None
         self.save_name = 'my_plot_{t}.pdf'.format(t=time.ctime(time.time()))
@@ -99,7 +112,25 @@ class Plot:
             wavelengths = np.true_divide(3e8, frequencies)
             wavelengths[np.isinf(wavelengths)] = 0.
         return wavelengths
+
+    def _draw_bandpasses(self):
+        """Draws the contents of ``bandpasses`` attribute on the plot
+        """
+        for bandpass in self.bandpasses:
+            low = bandpass[0]
+            high = bandpass[1]
+            color = bandpass[2]
+            label = bandpass[3]
+            opacity = bandpass[4]
+            plt.axvspan(low, high, fc=color, ec='none', alpha=opacity, label=label)
+        return
         
+    def _draw_legend(self):
+        """Draws a legend on the plot at the position matplotlib deems best
+        """
+        plt.legend(fontsize='x-small')
+        return
+
     def _make_save_path(self):
         """Assembles the full save path for the output plot
         
@@ -134,6 +165,32 @@ class Plot:
                 raise ValueError('Unrecognized wavelength units. See plotter.Plot() docstring for accepted units.')
         return
         
+    def add_bandpass(self, lower_bound, upper_bound, color=None, label=None, opacity=0.1):
+        """Adds a bandpass region to the plot. The region is a shaded rectangle 
+        spanning the full height of the plot.
+
+        Arguments
+        ---------
+        lower_bound : float
+            The lower edge of the bandpass, given in x-axis units.
+        upper_bound : float
+            The upper edge of the bandpass, given in x-axis units.
+        color : string, optional
+            The color of the bandpass region. Can be any color string
+            recognized by matplotlib. Defaults to 'None', which means a
+            random color will be chosen for the bandpass shading.
+        label : string, optional
+            The name that will appear in the legend, if a legend is used.
+            Deafults to 'None', which means no name will be displayed in
+            the legend.
+        opacity : float, optional
+            The opacity of the shaded region. Must be between 0 and 1, inclusive.
+            1 is completely opaque, and 0 is completely transparent.
+        """
+        bandpass = (lower_bound, upper_bound, color, label, opacity)
+        self.bandpasses.append(bandpass)
+        return
+
     def load_data(self, data):
         """Load a new set of data while retaining other plot
         characteristics
@@ -165,6 +222,10 @@ class Plot:
         ax.set_xlabel(self.xlabel)
         self._shape_data()
         ax.plot(self.data[0], self.data[1])
+        if self.draw_bandpasses:
+            self._draw_bandpasses()
+        if self.draw_legend:
+            self._draw_legend()
         path = self._make_save_path()
         plt.savefig(path, bbox_inches='tight')
 
@@ -224,6 +285,34 @@ class Plot:
         """
         print('The plot attributes are:\n')
         pprint.pprint(vars(self))
+        return
+
+    def toggle_bandpasses(self):
+        """Toggles the value of ``draw_bandpasses`` attribute between
+        `False` and `True`. If set to `False` bandpasses will be ignored. If
+        `True`, bandpasses will be drawn on the plot.
+        """
+        if type(self.draw_bandpasses) == type(True):
+            if self.draw_bandpasses:
+                self.draw_bandpasses = False
+            elif not self.draw_bandpasses:
+                self.draw_bandpasses = True
+        else:
+            raise TypeError("'draw_bandpasses' must be boolean")
+        return
+
+    def toggle_legend(self):
+        """Toggles the value of ``draw_legend`` attribute between `False` and 
+        `True`. If set to `False` the legend will be ignored. If `True`, 
+        the legend will be drawn on the plot.
+        """
+        if type(self.draw_legend) == type(True):
+            if self.draw_legend:
+                self.draw_legend = False
+            elif not self.draw_legend:
+                self.draw_legend = True
+        else:
+            raise TypeError("'draw_legend' must be boolean")
         return
 
 
