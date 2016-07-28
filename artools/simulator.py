@@ -62,7 +62,7 @@ class Layer:
             self.losstangent = mats.Electrical.LOSS_TAN[self.name]
         except:
             self.losstangent = 0
-            print '\nI don\'t know this loss tangent. Setting loss to 0!'
+            print('\nI don\'t know this loss tangent. Setting loss to 0!')
 
     def __repr__(self):
         return '%r (AR layer)' % self.name
@@ -620,7 +620,7 @@ class Builder:
             the reflections at each frequency.
         """
         t0 = time.time()
-        print 'Beginning AR coating simulation'
+        print('Beginning AR coating simulation')
         self._d_converter()
         self._interconnect()
         f_list = []
@@ -640,10 +640,10 @@ class Builder:
         header = 'Frequency (Hz)\t\tTransmission amplitude\t\tReflection amplitude'
         with open(fname, 'wb') as f:
             np.savetxt(f, np.c_[fs, ts, rs], delimiter='\t', header=header)
-        print 'Finished running AR coating simulation'
+        print('Finished running AR coating simulation')
         t1 = time.time()
         t_elapsed = t1-t0
-        print 'Elapsed time: {t}s\n'.format(t=t_elapsed)
+        print('Elapsed time: {t}s\n'.format(t=t_elapsed))
         return results
 
     def set_freq_sweep(self, lower_bound, upper_bound, resolution=1):
@@ -693,9 +693,9 @@ class Builder:
         materials. The listed material names are keys in the materials properties 
         dictionary. 
         """
-        print '\nThe materials with known dielectric properties are:\n'
+        print('\nThe materials with known dielectric properties are:\n')
         pprint.pprint(mats.Electrical.DIELECTRIC)
-        print '\nThe materials with known loss tangents are:\n'
+        print('\nThe materials with known loss tangents are:\n')
         pprint.pprint(mats.Electrical.LOSS_TAN)
         return
 
