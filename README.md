@@ -20,11 +20,11 @@ The program is intended to be easy to use, so much of the "heavy-lifting" is hid
 * shutil
 * time
 
-### How it works:
+### How it Works:
 ***
 The results of the simulation are calculated using a transfer matrix method (TMM). This particular transfer matrix method was written by H.S. Hou and published in Applied Optics Volume 13 Number 8, 1974. The Hou TMM is a computationally efficient means of calculating reflection and transmission through multilayer media.
 
-### Work flow:
+### Work Flow:
 ***
 The 
 
@@ -49,7 +49,7 @@ my_plot.load_data(results)
 my_plot.make_plot()
 ```
 
-### Future improvements:
+### Future Improvements:
 ***
 * Expand library of materials and material properties
 * Implement temperature-dependent loss
