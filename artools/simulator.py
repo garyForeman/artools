@@ -9,12 +9,6 @@ Based on transfer matrix method outlined in Hou, H.S. 1974.
 
 """
 ###### TODO ######
-7/28
-    * Write function to handle saving sim results to different paths
-8/1
-    * is _interconnect() useful anymore? it doesn't seem to do anything useful.
-    maybe it would be good to use as a check that the first and last elements
-    of the simulation are the 'Source' and 'Terminator' layers. Explore this.
 """
 
 import glob
@@ -349,24 +343,14 @@ class Builder:
             raise ValueError("Polarization must be 's' or 'p'")
 
     def _interconnect(self):
-        """Connect all the AR coating layer objects.
-
- 
-        ########################################
-        ########################################
-        ##  IS THIS EVEN USEFUL ANYMORE?????  ##
-        ########################################
-        ########################################
-
-
+        """Connect all the AR coating layer objects, ensuring that the source
+        and terminator layers come first and last, respectively.
         """
         self.clear_structure()
-        #self.source = self.add_layer(material='vacuum', type='source')
-        #self.terminator = self.add_layer(material='alumina', type='terminator')
-        #self.structure.append(self.source)
+        self.structure.append(self.source)
         for i in range(len(self.stack)):
             self.structure.append(self.stack[i])
-        #self.structure.append(self.terminator)
+        self.structure.append(self.terminator)
         return
 
     def _make_2x2(self, A11, A12, A21, A22, dtype=float):
@@ -571,31 +555,29 @@ class Builder:
             else:
                 self.stack.insert(stack_position, layer)
         elif type == 'source':
-            layer = SourceLayer()
-            layer.name = material.lower()
+            self.source = SourceLayer()
+            self.source.name = material.lower()
             try:
-                layer.dielectric = mats.Electrical.DIELECTRIC[layer.name]
+                self.source.dielectric = mats.Electrical.DIELECTRIC[self.source.name]
             except:
                 raise KeyError('I don\'t know that material!')
             try:
-                layer.losstangent = mats.Electrical.LOSS_TAN[layer.name]
+                self.source.losstangent = mats.Electrical.LOSS_TAN[self.source.name]
             except:
-                layer.losstangent = 0
+                self.source.losstangent = 0
                 print('\nI don\'t know this loss tangent. Setting loss to 0!')
-            self.stack.insert(0, layer)
         elif type == 'terminator':
-            layer = TerminatorLayer()
-            layer.name = material.lower()
+            self.terminator = TerminatorLayer()
+            self.terminator.name = material.lower()
             try:
-                layer.dielectric = mats.Electrical.DIELECTRIC[layer.name]
+                self.terminator.dielectric = mats.Electrical.DIELECTRIC[self.terminator.name]
             except:
                 raise KeyError('I don\'t know that material!')
             try:
-                layer.losstangent = mats.Electrical.LOSS_TAN[layer.name]
+                self.terminator.losstangent = mats.Electrical.LOSS_TAN[self.terminator.name]
             except:
-                layer.losstangent = 0
+                self.terminator.losstangent = 0
                 print('\nI don\'t know this loss tangent. Setting loss to 0!')
-            self.stack.append(layer)
         else:
             raise ValueError('Type must be one of LAYER, SOURCE, or TERMINATOR')
         return
