@@ -11,6 +11,10 @@ Based on transfer matrix method outlined in Hou, H.S. 1974.
 ###### TODO ######
 7/28
     * Write function to handle saving sim results to different paths
+8/1
+    * is _interconnect() useful anymore? it doesn't seem to do anything useful.
+    maybe it would be good to use as a check that the first and last elements
+    of the simulation are the 'Source' and 'Terminator' layers. Explore this.
 """
 
 import glob
@@ -24,12 +28,6 @@ import scipy as sp
 
 class Layer:
     """Represents a layer in the AR coating.
-
-    Arguments
-    ----------
-    material : string
-        A key in the dictionary of materials found in _materials.py. You can view
-        these materials by calling 'show_available_materials()'.
 
     Attributes
     ----------
@@ -48,23 +46,16 @@ class Layer:
         The loss tangent of the material as found in the dictionary
         of materials contained in _materials.py.
     """
-    def __init__(self, material):
-        self.name = material.lower()
+    def __init__(self):
+        self.name = 'Generic layer'
         self.thickness = 5.
         self.type = 'Layer'
-        self.units = None
-        try:
-            self.dielectric = mats.Electrical.DIELECTRIC[self.name]
-        except:
-            raise KeyError('I don\'t know that material!')
-        try:
-            self.losstangent = mats.Electrical.LOSS_TAN[self.name]
-        except:
-            self.losstangent = 0
-            print('\nI don\'t know this loss tangent. Setting loss to 0!')
+        self.units = 'mil'
+        self.dielectric = 1.
+        self.losstangent = 0.
 
     def __repr__(self):
-        return '%r (AR layer)' % self.name
+        return '{} (AR layer)'.format(self.name)
 
     def display_layer_parameters(self):
         """Displays the attributes of the layer.
@@ -91,35 +82,6 @@ class Layer:
         return (1/np.sqrt(self.dielectric)*3e8/(4*opt_freq))
 
 
-class BondingLayer(Layer):
-    """A special case of ``Layer``; represents the adhesive layer used in the AR stack.
-
-    Arguments
-    ---------
-    material : string
-        A key in the dictionary of materials found in _materials.py. You can view
-        these materials by calling ``show_available_materials()``.
-
-    Attributes
-    ----------
-    thickness : float
-        The thickness of the bonding layer. Defaults to 100e-6 meters, which is
-        the typical thickness of a Stycast 1266 layer. This may be changed as is 
-        necessary, but the units must (eventually) be converted to meters before 
-        being fed to the simulator.
-    type : string
-        A flag for the model. Defaults to 'Bonding layer'. Should not be changed, 
-        or things may break.
-    """
-    def __init__(self, material):
-        Layer.__init__(self, material)
-        self.thickness = 100.e-6 # typical Stycast 1266 thickness
-        self.type = 'Bonding layer'
-
-    def __repr__(self):
-        return '%r (bonding layer)' % self.name
-
-
 class SourceLayer(Layer):
     """A special case of ``Layer``; represents the layer from which the simulated wave 
     emanates.
@@ -140,13 +102,13 @@ class SourceLayer(Layer):
         A flag for the model. Defaults to 'Source'. Should not be changed, or things
         may break.
     """
-    def __init__(self, material):
-        Layer.__init__(self, material)
+    def __init__(self):
+        Layer.__init__(self)
         self.thickness = np.inf
         self.type = 'Source'
 
     def __repr__(self):
-        return '%r (source layer)' % self.name
+        return '{} (source layer)'.format(self.name)
 
 
 class SubstrateLayer(Layer):
@@ -170,13 +132,13 @@ class SubstrateLayer(Layer):
         A flag for the model. Defaults to 'Substrate'. Should not be changed,
         or things may break.
     """
-    def __init__(self, material):
-        Layer.__init__(self, material)
-        self.thickness = 250. #mils
+    def __init__(self):
+        Layer.__init__(self)
+        self.thickness = 250.
         self.type = 'Substrate'
         
     def __repr__(self):
-        return '%r (substrate)' % self.name
+        return '{} (substrate)'.format(self.name)
 
 
 class TerminatorLayer(Layer):
@@ -200,13 +162,13 @@ class TerminatorLayer(Layer):
         A flag for the model. Defaults to 'Terminator'. Should not be changed, 
         or things may break.
     """
-    def __init__(self, material):
-        Layer.__init__(self, material)
+    def __init__(self):
+        Layer.__init__(self)
         self.thickness = np.inf
         self.type = 'Terminator'
 
     def __repr__(self):
-        return '%r (terminator layer)' % self.name
+        return '{} (terminator layer)'.format(self.name)
 
 
 class Builder:
@@ -246,10 +208,10 @@ class Builder:
         self.optimization_frequency = 160e9        # given in Hz, i.e. 160 GHz
         self.save_name = 'transmission_data_{t}.txt'.format(t=time.ctime(time.time()))
         self.save_path = '.'
-        self.source = SourceLayer('vacuum')
+        self.source = None #self.add_layer(material='vacuum', type='source')
         self.stack = []
         self.structure = []
-        self.terminator = TerminatorLayer('alumina')
+        self.terminator = None #self.add_layer(material='alumina', type='terminator')
 
     def _calc_R_T_amp(self, polarization, n, delta):
         """Calculates the reflected and transmitted amplitudes
@@ -389,16 +351,22 @@ class Builder:
     def _interconnect(self):
         """Connect all the AR coating layer objects.
 
-        Arguments
-        ---------
-        stack : list
-            Contains a list of ``Layer`` objects, ordered from source to terminator.
+ 
+        ########################################
+        ########################################
+        ##  IS THIS EVEN USEFUL ANYMORE?????  ##
+        ########################################
+        ########################################
+
+
         """
-        self.clear_stack()
-        self.structure.append(self.source)
+        self.clear_structure()
+        #self.source = self.add_layer(material='vacuum', type='source')
+        #self.terminator = self.add_layer(material='alumina', type='terminator')
+        #self.structure.append(self.source)
         for i in range(len(self.stack)):
             self.structure.append(self.stack[i])
-        self.structure.append(self.terminator)
+        #self.structure.append(self.terminator)
         return
 
     def _make_2x2(self, A11, A12, A21, A22, dtype=float):
@@ -550,14 +518,15 @@ class Builder:
         T = (s_data + p_data)/2
         return T
  
-    def add_layer(self, material, thickness=5.0, units='mil', type=None, stack_position=-1):
-        """Create a layer and add it to the AR coating stack
+    def add_layer(self, material, thickness=5.0, units='mil', type='layer', stack_position=-1):
+        """Create a layer from the set of pre-programmed materials and add it
+        to the AR coating stack
 
         Arguments
         ---------
         material : string
-            A key in the dictionary of materials found in _materials.py.
-            You can view these materials by calling 
+            A key in the dictionary of materials found in materials.py.
+            You can view these materials by calling
             'show_materials()'.
         stack_position : int, optional
             The position of the layer in the AR coating stack, indexed
@@ -565,12 +534,12 @@ class Builder:
             to the end (bottom?) of the stack.
         thickness : float, optional
             The thickness of the AR coating layer material. Assumed to
-            be given in 'mil' (i.e. thousandths of an inch) unless 
+            be given in 'mil' (i.e. thousandths of an inch) unless
             otherwise stated
         type : string, optional
-            The layer type. Defaults to 'None' type, which corresponds to
-            an AR layer. Other options are 'substrate' or 'bonding', which
-            correspond to substrate and bonding layers, respectively.
+            The layer type. Defaults to 'layer', which corresponds to
+            an AR layer. Other options are 'source' or 'terminator', which
+            correspond to source and terminator layers, respectively.
         units : string, optional
             The units of length for the AR coating layer. Must be one of:
                 { 'mil'   ,
@@ -581,35 +550,79 @@ class Builder:
                   'in'    ,
                   'micron'}
         """
-        if type == None:
-            layer = Layer(material)
+
+        type = type.lower()
+        if type == 'layer':
+            layer = Layer()
+            layer.name = material.lower()
             layer.thickness = thickness
             layer.units = units
-            pos_check = -1
-            if (pos_check == stack_position):
+            try:
+                layer.dielectric = mats.Electrical.DIELECTRIC[layer.name]
+            except:
+                raise KeyError('I don\'t know that material!')
+            try:
+                layer.losstangent = mats.Electrical.LOSS_TAN[layer.name]
+            except:
+                layer.losstangent = 0
+                print('\nI don\'t know this loss tangent. Setting loss to 0!')
+            if (stack_position == -1):
                 self.stack.append(layer)
             else:
                 self.stack.insert(stack_position, layer)
+        elif type == 'source':
+            layer = SourceLayer()
+            layer.name = material.lower()
+            try:
+                layer.dielectric = mats.Electrical.DIELECTRIC[layer.name]
+            except:
+                raise KeyError('I don\'t know that material!')
+            try:
+                layer.losstangent = mats.Electrical.LOSS_TAN[layer.name]
+            except:
+                layer.losstangent = 0
+                print('\nI don\'t know this loss tangent. Setting loss to 0!')
+            self.stack.insert(0, layer)
+        elif type == 'terminator':
+            layer = TerminatorLayer()
+            layer.name = material.lower()
+            try:
+                layer.dielectric = mats.Electrical.DIELECTRIC[layer.name]
+            except:
+                raise KeyError('I don\'t know that material!')
+            try:
+                layer.losstangent = mats.Electrical.LOSS_TAN[layer.name]
+            except:
+                layer.losstangent = 0
+                print('\nI don\'t know this loss tangent. Setting loss to 0!')
+            self.stack.append(layer)
         else:
-            type = type.lower()
-            if type == 'substrate':
-                layer = SubstrateLayer(material)
-                layer.thickness = thickness
-                layer.units = units
-                pos_check = -1
-                if (pos_check == stack_position):
-                    self.stack.append(layer)
-                else:
-                    self.stack.insert(stack_position, layer)
-            elif type == 'bonding':
-                layer = BondingLayer(material)
-                layer.thickness = thickness
-                layer.units = units
-                pos_check = -1
-                if (pos_check == stack_position):
-                    self.stack.append(layer)
-                else:
-                    self.stack.insert(stack_position, layer)
+            raise ValueError('Type must be one of LAYER, SOURCE, or TERMINATOR')
+        return
+
+    def add_custom_layer(self, material, thickness, units, dielectric, loss_tangent, stack_position=-1):
+        """Add a layer with custom properties to the AR stack
+
+        Arguments
+        ---------
+        material : string
+            The name of the layer
+        thickness : float
+            The thickness of the layer
+        dielectric : float
+            The dielectric constant of the AR coating layer
+        loss_tangent : float
+            The loss tangent of the AR coating layer
+        """
+        layer = Layer()
+        layer.units = units
+        layer.thickness = thickness
+        layer.dielectric = dielectric
+        layer.losstangent = loss_tangent
+        if (stack_position == -1):
+            self.stack.append(layer)
+        else:
+            self.stack.insert(stack_position, layer)
         return
 
     def display_sim_parameters(self):
@@ -618,7 +631,7 @@ class Builder:
         pprint.pprint(vars(self))
         return
 
-    def clear_stack(self):
+    def clear_structure(self):
         """Remove all elements from the current AR ``structure``.
         """
         self.structure = []
@@ -757,7 +770,6 @@ class Builder:
         # check the desired polarization
 #        if polarization == 'u':
 #            return self._unpolarized_simulation(frequency)
-        
         n = self._sort_ns()                                 # get all refractive indices
         d = self._sort_ds()                                 # get all thicknesses
         tan = self._sort_tans()                             # get all loss tans
@@ -781,3 +793,67 @@ class Builder:
             The angle of incidence at the first interface.
         """
         return sp.arcsin(np.real_if_close(n_list[0]*np.sin(th_0) / n_list))
+
+class MCMC:
+    """Contains the methods specific to ``emcee``, the MCMC Hammer, and helper
+    methods to set up MCMC simulations and visualize the results.
+    """
+    def __init__(self):
+        self.name = 'blah'
+        self.priors = []
+
+    def __repr__(self):
+        return '{} (MCMC object)'.format(self.name)
+
+    def add_prior(self, layer_number, prior_type, low_bound, hi_bound, units='mil'):
+        """Adds a prior to a part of the model in order to constrain the total
+        simulation space. Can only place constraints on thickness and dielectric
+        for now.
+
+        Arguments
+        ---------
+        layer_number : int
+            The position of the layer in the AR coating stack. Indexed from 1, so
+            incident `vacuum` is 0 and first AR coating layer is 1.
+        prior_type : string
+            Flags the prior as either a cut to dielectric constant or thickness.
+            One of 'thickness', 't', 'dielectric', or 'd'.
+        low_bound : float
+            The lower boundary of the range.
+        hi_bound : float
+            The higher boundary of the range.
+        units : string, optional
+            The units of the lower and upper bounds. Only applies to 'thickness'
+            cuts because dielectric constants are unitless. Defaults to `mils`.
+        """
+        prior = {'layer_number':layer_number, 'prior_type':prior_type, \
+                     'low_bound':low_bound, 'hi_bound':hi_bound, 'units':units}
+        self.priors.append(prior)
+        return
+
+    def lnlikelihood(self):
+        return
+
+    def lnprior(self):
+        """Defines the known prior attributes of the model in order to constrain
+        the simulation space.
+        """
+        
+        return
+
+    def lnprobability(self):
+        """The logspace sum of ``lnprior`` and ``lnlikelihood``.
+        """
+        return
+
+    def sort_priors(self):
+        """Sorts the contents of ``self.prior`` by layer number
+        
+        Returns
+        -------
+        sorted_priors : list
+            A list of priors sorted by layer number. If a layer has both
+            thickness and dielectric priors, the thickness dielectric is first
+            and the dielectric is second.
+        """
+        return
