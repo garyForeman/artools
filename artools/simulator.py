@@ -9,6 +9,8 @@ Based on transfer matrix method outlined in Hou, H.S. 1974.
 
 """
 ###### TODO ######
+
+8/2 - Go through all doctrings and make sure they're right
 """
 
 import glob
