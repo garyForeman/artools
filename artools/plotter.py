@@ -336,7 +336,7 @@ class ReflectionPlot(Plot):
         Plot.__init__(self)    # Inherit attributes from generic 'Plot' class
         self.title = 'Reflection plot'
         self.type = 'Reflection'
-        self.ylabel = 'Reflection (%)'
+        self.ylabel = 'Reflection'
 
 
 class TransmissionPlot(Plot):
@@ -346,7 +346,7 @@ class TransmissionPlot(Plot):
         Plot.__init__(self)    # Inherit attributes from generic 'Plot' class
         self.title = 'Transmission plot'
         self.type = 'Transmission'
-        self.ylabel = 'Transmission (%)'
+        self.ylabel = 'Transmission'
 
 
 class MCPlot(Plot):
