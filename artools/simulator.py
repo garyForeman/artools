@@ -97,34 +97,27 @@ class SourceLayer(Layer):
         return '{} (source layer)'.format(self.name)
 
 
-# class SubstrateLayer(Layer):
-#     """A special case of ``Layer``; represents the layer to which the AR coating is 
-#     attached.
+class SubstrateLayer(Layer):
+    """A special case of ``Layer``; represents the layer to which the AR coating is 
+    attached.
 
-#     Arguments
-#     ---------
-#     material : string
-#         A key in the materials dictionary found in _materials.py. You can view
-#         these materials by calling ``show_materials()``.
-
-#     Attributes
-#     ----------
-#     thickness : float
-#         The thickness of the substrate layer. Defaults to 250 mils, which is 
-#         the typical thickness of a sample puck used in the Berkeley FTS setup.
-#         This may be changed as is necessary, but the units must (eventually) be
-#         converted to meters before being fed to the simulator.
-#     type : string
-#         A flag for the model. Defaults to 'Substrate'. Should not be changed,
-#         or things may break.
-#     """
-#     def __init__(self):
-#         Layer.__init__(self)
-#         self.thickness = 250.
-#         self.type = 'Substrate'
+    Attributes
+    ----------
+    thickness : float
+        The thickness of the substrate layer. Defaults to 250 mils, which is 
+        the typical thickness of a sample puck used in the Berkeley FTS setup.
+        This may be changed as is necessary, but the units must (eventually) be
+        converted to meters before being fed to the simulator.
+    type : string
+        The type of layer
+    """
+    def __init__(self):
+        Layer.__init__(self)
+        self.thickness = 250.
+        self.type = 'Substrate'
         
-#     def __repr__(self):
-#         return '{} (substrate)'.format(self.name)
+    def __repr__(self):
+        return '{} (substrate)'.format(self.name)
 
 
 class TerminatorLayer(Layer):
@@ -248,7 +241,7 @@ class Builder:
         return
         
     def _find_ks(self, n, frequency, tan, lossy=True):
-        """Calculate the wavevectors.
+        """Calculate the wavenumbers.
 
         Arguments
         ---------
@@ -266,7 +259,7 @@ class Builder:
         Returns
         -------
         k : complex
-            The complex wavevector, k
+            The complex wavenumber, k
         """
         if lossy:
             k = 2*np.pi*n*frequency*(1-0.5j*tan)/3e8
@@ -275,7 +268,7 @@ class Builder:
         return k
 
     def _find_k_offsets(self, k, d):
-        """Calculate the wavevector offset, delta.
+        """Calculate the wavenumber offset, delta.
 
         Arguments
         ---------
@@ -287,7 +280,7 @@ class Builder:
         Returns
         -------
         delta : array
-            The wavevector offset
+            The wavenumber offset
         """
         olderr = sp.seterr(invalid= 'ignore') # turn off 'invalid multiplication' error;
                                               # it's just the 'inf' boundaries
@@ -397,9 +390,9 @@ class Builder:
             The amplitude of the reflected power
         """
         if polarization == 's':
-            return ((n_1 - n_2)/(n_1 + n_2))
+            return ((n_1-n_2)/(n_1+n_2))
         elif polarization == 'p':
-            return ((n_1 - n_2)/(n_1 + n_2))
+            return ((n_1-n_2)/(n_1+n_2))
         else:
             raise ValueError("Polarization must be 's' or 'p'")
 
@@ -729,8 +722,8 @@ class Builder:
         -------
         result : dict
             dict = {
-                'T' : numpy array; the total transmission through the model.
-                'R' : numpy array; the total reflection through the model.
+                'T' : array; the total transmission through the model.
+                'R' : array; the total reflection through the model.
                     }
         """
         # check the desired polarization
