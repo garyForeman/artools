@@ -518,11 +518,13 @@ class Builder:
             layer.thickness = thickness
             layer.units = units
             try:
-                layer.dielectric = mats.Electrical.DIELECTRIC[layer.name]
+#                 layer.dielectric = mats.Electrical.DIELECTRIC[layer.name]
+                layer.dielectric = mats.Electrical.props[layer.name][0]
             except:
                 raise KeyError('I don\'t know that material!')
             try:
-                layer.losstangent = mats.Electrical.LOSS_TAN[layer.name]
+#                 layer.losstangent = mats.Electrical.LOSS_TAN[layer.name]
+                layer.losstangent = mats.Electrical.props[layer.name][1]
             except:
                 layer.losstangent = 0
                 print('\nI don\'t know this loss tangent. Setting loss to 0!')
@@ -534,11 +536,13 @@ class Builder:
             self.source = SourceLayer()
             self.source.name = material.lower()
             try:
-                self.source.dielectric = mats.Electrical.DIELECTRIC[self.source.name]
+#                 self.source.dielectric = mats.Electrical.DIELECTRIC[self.source.name]
+                self.source.dielectric = mats.Electrical.props[self.source.name][0]
             except:
                 raise KeyError('I don\'t know that material!')
             try:
-                self.source.losstangent = mats.Electrical.LOSS_TAN[self.source.name]
+#                 self.source.losstangent = mats.Electrical.LOSS_TAN[self.source.name]
+                self.source.losstangent = mats.Electrical.props[self.source.name][1]
             except:
                 self.source.losstangent = 0
                 print('\nI don\'t know this loss tangent. Setting loss to 0!')
@@ -546,11 +550,13 @@ class Builder:
             self.terminator = TerminatorLayer()
             self.terminator.name = material.lower()
             try:
-                self.terminator.dielectric = mats.Electrical.DIELECTRIC[self.terminator.name]
+#                 self.terminator.dielectric = mats.Electrical.DIELECTRIC[self.terminator.name]
+                self.terminator.dielectric = mats.Electrical.props[self.terminator.name][0]
             except:
                 raise KeyError('I don\'t know that material!')
             try:
-                self.terminator.losstangent = mats.Electrical.LOSS_TAN[self.terminator.name]
+#                 self.terminator.losstangent = mats.Electrical.LOSS_TAN[self.terminator.name]
+                self.terminator.losstangent = mats.Electrical.props[self.terminator.name][1]
             except:
                 self.terminator.losstangent = 0
                 print('\nI don\'t know this loss tangent. Setting loss to 0!')
@@ -695,9 +701,11 @@ class Builder:
         are keys in the materials properties dictionary. 
         """
         print('\nThe materials with known dielectric properties are:\n')
-        pprint.pprint(mats.Electrical.DIELECTRIC)
+        pprint.pprint(mats.Electrical.props)
+#         pprint.pprint(mats.Electrical.DIELECTRIC)
         print('\nThe materials with known loss tangents are:\n')
-        pprint.pprint(mats.Electrical.LOSS_TAN)
+        pprint.pprint(mats.Electrical.props)
+#         pprint.pprint(mats.Electrical.LOSS_TAN)
         return
 
     def sim_single_freq(self, frequency, polarization='s', theta_0=0):
