@@ -140,23 +140,25 @@ int main() {
 	 creal(c_array_3d[2][1][0]), cimag(c_array_3d[2][1][0]),
 	 creal(c_array_3d[2][1][1]), cimag(c_array_3d[2][1][1]));
 
-/*   // make a mock simulation using the inputs: thickness, dielectric constant,  */
-/*   // and loss tangent */
+  // make a mock simulation using the inputs:
+  // thickness, dielectric constant, and loss tangent
 
-/*   printf("Testing grabbing from arrays and calculating things, then putting values back into new arrays.\n"); */
+  printf("Testing grabbing from arrays and calculating things, then putting values back into new arrays.\n");
 
-/*   double dielectrics[5] = {1.0, 2.4, 3.15, 6.15, 9.7}; */
-/*   double thicknesses[5] = {1000.0, 15.0*2.54E-5, 5.0*2.54E-5, 5.0*2.54E-5, 1000.0}; */
-/*   double losses[5] = {0.0, 2.5E-4, 1.7E-3, 1.526E-3, 7.4E-4}; */
+  double dielectrics[5] = {1.0, 2.4, 3.15, 6.15, 9.7};
+  double thicknesses[5] = {1000.0, 15.0*2.54E-5, 5.0*2.54E-5, 5.0*2.54E-5, 1000.0};
+  double losses[5] = {0.0, 2.5E-4, 1.7E-3, 1.526E-3, 7.4E-4};
 
-/*   double ks[5]; */
-/*   double deltas[5]; */
-/*   double index[5]; */
-/*   // int count; */
-/*   int i; */
+  double ks[5];
+  double deltas[5];
+  double index[5];
+  // int count;
+  int i;
 
-/*   printf("Test converting the array of dielectric constants to refractive indices.\n"); */
+  printf("Test converting the array of dielectric constants to refractive indices.\n");
 
+
+  printf("\n#####################\n### END DEBUGGING ###\n#####################\n\n");
 }
 
 double get_index(double dielectric) {
@@ -232,7 +234,10 @@ double get_R(double _Complex r_amp) {
 }
 
 double get_T(double _Complex t_amp, double n_i, double n_f) {
-  // should this actually be the commented expression????
+  // should this actually be the commented out expression????
+  // in Python I wrote it like this:
+  // return np.abs(net_t_amp**2)*(n_f/n_i)
+  // but maybe that isn't correct? second guessing myself here...
   return fabs(pow(t_amp, 2))*(n_f/n_i);
   //return pow(cabs(t_amp), 2)*(n_f/n_i);
 }
