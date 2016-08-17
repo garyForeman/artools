@@ -143,20 +143,43 @@ int main() {
   // make a mock simulation using the inputs:
   // thickness, dielectric constant, and loss tangent
 
-  printf("Testing grabbing from arrays and calculating things, then putting values back into new arrays.\n");
+  printf("\n>>>> Testing grabbing from arrays and calculating things, then putting values back into new arrays. <<<<\n\n");
 
   double dielectrics[5] = {1.0, 2.4, 3.15, 6.15, 9.7};
   double thicknesses[5] = {1000.0, 15.0*2.54E-5, 5.0*2.54E-5, 5.0*2.54E-5, 1000.0};
   double losses[5] = {0.0, 2.5E-4, 1.7E-3, 1.526E-3, 7.4E-4};
 
-  double ks[5];
+  double _Complex ks[5];
   double deltas[5];
   double index[5];
   // int count;
   int i;
 
   printf("Test converting the array of dielectric constants to refractive indices.\n");
+  for (i=0; i<5; i++) {
+    index[i] = get_index(dielectrics[i]);
+  }
+  printf("The conversion from dielectric to index is:\n");
+  for (i=0; i<5; i++) {
+    printf("%lf ---> %lf\n", dielectrics[i], index[i]);
+  }
 
+  printf("\nTest calculating the wavenumbers.\n");
+  for (i=0; i<5; i++) {
+    ks[i] = find_k(index[i], freq, losses[i]);
+  }
+  printf("The dimensioned wavenumber (with units m^(-1)) for each layer is:\n");
+  for (i=0; i<5; i++) {
+    printf("%lf+%lfi\n", creal(ks[i]), cimag(ks[i]));
+  }
+  for (i=0; i<5; i++) {
+    deltas[i] = ks[i]*thicknesses[i];
+  }
+  printf("\nAnd the dimensionless wavenumber for each layer is:\n");
+  for (i=0; i<5; i++) {
+    printf("%lf+%lf\n", creal(deltas[i]), cimag(deltas[i]));
+  }
+    
 
   printf("\n#####################\n### END DEBUGGING ###\n#####################\n\n");
 }
