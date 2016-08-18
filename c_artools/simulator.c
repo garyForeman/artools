@@ -149,7 +149,7 @@ int main() {
 
   printf("\n>>>> Testing grabbing from arrays and calculating things, then putting values back into new arrays. <<<<\n\n");
   double freq;
-  double dielectric[NUM_LAYERS] = {1.0, 2.4, 3.15, 6.15, 9.7};
+  double dielectric[NUM_LAYERS] = {1.0, 2.4, 3.5, 6.15, 9.7};
   double thickness[NUM_LAYERS] = {1000.0, 15.0*2.54E-5, 5.0*2.54E-5, 5.0*2.54E-5, 1000.0};
   double loss[NUM_LAYERS] = {0.0, 2.5E-4, 1.7E-3, 1.526E-3, 7.4E-4};
 
@@ -188,7 +188,7 @@ int main() {
   double _Complex * test_val;
   test_val = calc_RT_amp(freq, dielectric, loss, thickness);
 
-  printf("\n#####################\n### END DEBUGGING ###\n#####################\n\n");
+  printf("\n\n#####################\n### END DEBUGGING ###\n#####################\n\n");
 }
 
 double get_index(double dielectric) {
@@ -220,7 +220,6 @@ double ** make_2x2(void) {
     matrix[i] = (double *)malloc(sizeof(double)*2);
     for (j=0; j<2; j++) {
       matrix[i][j] = val;
-      val ++;
     }
   }
   return matrix;
@@ -234,8 +233,7 @@ double _Complex ** make_complex_2x2(void) {
   for (i=0; i<2; i++) {
     matrix[i] = (double _Complex *)malloc(sizeof(double _Complex)*2);
     for (j=0; j<2; j++) {
-      matrix[i][j] = val+val*I;
-      val ++;
+      matrix[i][j] = val;
     }
   }
   return matrix;
@@ -252,7 +250,6 @@ double _Complex *** make_complex_nd(int n) {
       nd_matrix[i][j] = (double _Complex *)malloc(sizeof(double _Complex)*2);
       for (k=0; k<2; k++) {
 	nd_matrix[i][j][k] = val;
-	val ++;
       }
     }
   }
@@ -275,8 +272,12 @@ double get_T(double _Complex t_amp, double n_i, double n_f) {
 double _Complex * calc_RT_amp(double frequency, double dielectric[NUM_LAYERS], double loss[NUM_LAYERS], double thickness[NUM_LAYERS]) {
   double index[NUM_LAYERS];
   double _Complex delta[NUM_LAYERS];
-  double _Complex r_amp[NUM_LAYERS-1][NUM_LAYERS-1] = {0};
-  double _Complex t_amp[NUM_LAYERS-1][NUM_LAYERS-1] = {0};
+  double _Complex r_amp[NUM_LAYERS][NUM_LAYERS] = {0};
+  double _Complex t_amp[NUM_LAYERS][NUM_LAYERS] = {0};
+  double _Complex *** M;
+  double _Complex ** M_prime;
+  double _Complex ** m_r_amp;
+  double _Complex ** m_t_amp;
   double _Complex * RT_amp;
   int i,j,k;
 
@@ -299,53 +300,78 @@ double _Complex * calc_RT_amp(double frequency, double dielectric[NUM_LAYERS], d
     printf("%lf+%lfi\n", creal(delta[i]), cimag(delta[i]));
   }
   printf("\nHere are the original values of 'r_amp' and 't_amp'.\n");
-  printf("r_amp:\n%lf+%lfi %lf+%lfi %lf+%lfi %lf+%lfi\n%lf+%lfi %lf+%lfi %lf+%lfi %lf+%lfi\n%lf+%lfi %lf+%lfi %lf+%lfi %lf+%lfi\n%lf+%lfi %lf+%lfi %lf+%lfi %lf+%lfi\n\n",
-	 creal(r_amp[0][0]), cimag(r_amp[0][0]), creal(r_amp[0][1]), cimag(r_amp[0][1]), creal(r_amp[0][2]), cimag(r_amp[0][2]),
-	 creal(r_amp[0][3]), cimag(r_amp[0][3]),
-	 creal(r_amp[1][0]), cimag(r_amp[1][0]), creal(r_amp[1][1]), cimag(r_amp[1][1]), creal(r_amp[1][2]), cimag(r_amp[1][2]),
-         creal(r_amp[1][3]), cimag(r_amp[1][3]),
-	 creal(r_amp[2][0]), cimag(r_amp[2][0]), creal(r_amp[2][1]), cimag(r_amp[2][1]), creal(r_amp[2][1]), cimag(r_amp[2][1]),
-	 creal(r_amp[2][3]), cimag(r_amp[2][3]),
-	 creal(r_amp[3][0]), cimag(r_amp[3][0]) ,creal(r_amp[3][1]), cimag(r_amp[3][1]), creal(r_amp[3][2]), cimag(r_amp[3][2]), 
-	 creal(r_amp[3][3]), cimag(r_amp[3][3]));
+  for (i=0; i<NUM_LAYERS; i++) {
+    for (j=0; j<NUM_LAYERS; j++) {
+      printf("r_amp %d%d ---> %lf %lfi\n", i, j, creal(r_amp[i][j]), cimag(r_amp[i][j]));
+	}
+  }
+  printf("\n");
+  for (i=0; i<NUM_LAYERS; i++) {
+    for (j=0; j<NUM_LAYERS; j++) {
+      printf("t_amp %d%d ---> %lf %lfi\n", i, j, creal(t_amp[i][j]), cimag(t_amp[i][j]));
+    }
+  }
 
-  printf("t_amp:\n%lf+%lfi %lf+%lfi %lf+%lfi %lf+%lfi\n%lf+%lfi %lf+%lfi %lf+%lfi %lf+%lfi\n%lf+%lfi %lf+%lfi %lf+%lfi %lf+%lfi\n%lf+%lfi %lf+%lfi %lf+%lfi %lf+%lfi\n\n",
-         creal(t_amp[0][0]), cimag(t_amp[0][0]), creal(t_amp[0][1]), cimag(t_amp[0][1]), creal(t_amp[0][2]), cimag(t_amp[0][2]),
-         creal(t_amp[0][3]), cimag(t_amp[0][3]),
-         creal(t_amp[1][0]), cimag(t_amp[1][0]), creal(t_amp[1][1]), cimag(t_amp[1][1]), creal(t_amp[1][2]), cimag(t_amp[1][2]),     
-         creal(t_amp[1][3]), cimag(t_amp[1][3]),
-         creal(t_amp[2][0]), cimag(t_amp[2][0]), creal(t_amp[2][1]), cimag(t_amp[2][1]), creal(t_amp[2][1]), cimag(t_amp[2][1]),
-         creal(t_amp[2][3]), cimag(t_amp[2][3]),
-         creal(t_amp[3][0]), cimag(t_amp[3][0]) ,creal(t_amp[3][1]), cimag(t_amp[3][1]), creal(t_amp[3][2]), cimag(t_amp[3][2]),
-         creal(t_amp[3][3]), cimag(t_amp[3][3]));
-
-  for (i=1; i<NUM_LAYERS-1; i++) {
+  for (i=0; i<NUM_LAYERS-1; i++) {
     r_amp[i][i+1] = r_at_interface(index[i], index[i+1]);
     t_amp[i][i+1] = t_at_interface(index[i], index[i+1]);
   }
   printf("\nHere are the modified values of 'r_amp' and 't_amp'.\n");
-  printf("r_amp:\n%lf+%lfi %lf+%lfi %lf+%lfi %lf+%lfi\n%lf+%lfi %lf+%lfi %lf+%lfi %lf+%lfi\n%lf+%lfi %lf+%lfi %lf+%lfi %lf+%lfi\n%lf+\
-%lfi %lf+%lfi %lf+%lfi %lf+%lfi\n\n",
-         creal(r_amp[0][0]), cimag(r_amp[0][0]), creal(r_amp[0][1]), cimag(r_amp[0][1]), creal(r_amp[0][2]), cimag(r_amp[0][2]),
-         creal(r_amp[0][3]), cimag(r_amp[0][3]),
-         creal(r_amp[1][0]), cimag(r_amp[1][0]), creal(r_amp[1][1]), cimag(r_amp[1][1]), creal(r_amp[1][2]), cimag(r_amp[1][2]),
-         creal(r_amp[1][3]), cimag(r_amp[1][3]),
-         creal(r_amp[2][0]), cimag(r_amp[2][0]), creal(r_amp[2][1]), cimag(r_amp[2][1]), creal(r_amp[2][1]), cimag(r_amp[2][1]),
-         creal(r_amp[2][3]), cimag(r_amp[2][3]),
-         creal(r_amp[3][0]), cimag(r_amp[3][0]) ,creal(r_amp[3][1]), cimag(r_amp[3][1]), creal(r_amp[3][2]), cimag(r_amp[3][2]),
-         creal(r_amp[3][3]), cimag(r_amp[3][3]));
+  for (i=0; i<NUM_LAYERS; i++) {
+    for (j=0; j<NUM_LAYERS; j++) {
+      printf("mod r_amp %d%d ---> %lf %lfi\n", i, j, creal(r_amp[i][j]), cimag(r_amp[i][j]));
+    }
+  }
+  printf("\n");
+  for (i=0; i<NUM_LAYERS; i++) {
+    for (j=0; j<NUM_LAYERS; j++) {
+      printf("mod t_amp %d%d ---> %lf %lfi\n", i, j, creal(t_amp[i][j]), cimag(t_amp[i][j]));
+    }
+  }
 
-  printf("t_amp:\n%lf+%lfi %lf+%lfi %lf+%lfi %lf+%lfi\n%lf+%lfi %lf+%lfi %lf+%lfi %lf+%lfi\n%lf+%lfi %lf+%lfi %lf+%lfi %lf+%lfi\n%lf+\
-%lfi %lf+%lfi %lf+%lfi %lf+%lfi\n\n",
-         creal(t_amp[0][0]), cimag(t_amp[0][0]), creal(t_amp[0][1]), cimag(t_amp[0][1]), creal(t_amp[0][2]), cimag(t_amp[0][2]),
-         creal(t_amp[0][3]), cimag(t_amp[0][3]),
-         creal(t_amp[1][0]), cimag(t_amp[1][0]), creal(t_amp[1][1]), cimag(t_amp[1][1]), creal(t_amp[1][2]), cimag(t_amp[1][2]),
-         creal(t_amp[1][3]), cimag(t_amp[1][3]),
-         creal(t_amp[2][0]), cimag(t_amp[2][0]), creal(t_amp[2][1]), cimag(t_amp[2][1]), creal(t_amp[2][1]), cimag(t_amp[2][1]),
-         creal(t_amp[2][3]), cimag(t_amp[2][3]),
-         creal(t_amp[3][0]), cimag(t_amp[3][0]) ,creal(t_amp[3][1]), cimag(t_amp[3][1]), creal(t_amp[3][2]), cimag(t_amp[3][2]),
-         creal(t_amp[3][3]), cimag(t_amp[3][3]));
+  M = make_complex_nd(NUM_LAYERS);
+  printf("\nThe 'M' matrix is:\n");
+  for (i=0; i<NUM_LAYERS; i++) {
+    for (j=0; j<2; j++) {
+      for (k=0; k<2; k++) {
+	printf("M%d%d%d ---> %lf %lf\n", i, j, k, creal(M[i][j][k]), cimag(M[i][j][k]));
+      }
+    }
+  }
+
+  m_r_amp = make_complex_2x2();
+  m_t_amp = make_complex_2x2();
+  printf("\nThe temporary 'm_r_amp' matrix is:\n");
+  for (i=0; i<2; i++) {
+    for (j=0; j<2; j++) {
+      printf("m_r_amp%d%d ---> %lf %lf\n", i, j, creal(m_r_amp[i][j]), cimag(m_r_amp[i][j]));
+    }
+  }  
+  printf("\nThe temporary 'm_t_amp' matrix is:\n");
+  for (i=0; i<2; i++) {
+    for (j=0; j<2; j++) {
+      printf("m_t_amp%d%d ---> %lf %lf\n", i, j, creal(m_t_amp[i][j]), cimag(m_t_amp[i][j]));
+    }
+  }
+
+  M_prime = make_complex_2x2();
+  printf("\nThe 'M_prime' matrix is:\n");
+  for (i=0; i<2; i++) {
+    for (j=0; j<2; j++) {
+        printf("M_prime%d%d ---> %lf %lf\n", i, j, creal(M_prime[i][j]), cimag(M_prime[i][j]));
+    }
+  }
+
+  M_prime[0][0] = 1.0;
+  M_prime[1][1] = 1.0;
+  printf("\nThe modified 'M_prime' matrix is:\n");
+  for (i=0; i<2; i++) {
+    for (j=0; j<2; j++) {
+      printf("mod M_prime%d%d ---> %lf %lf\n", i, j, creal(M_prime[i][j]), cimag(M_prime[i][j]));
+    }
+  }
 
   RT_amp[0] = -1.0-1.0*I;
+  printf("\n#### Leaving 'calc_RT_amp' ####\n");
   return RT_amp;
 }
