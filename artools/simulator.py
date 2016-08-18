@@ -207,12 +207,39 @@ class Builder:
         """
         t_amp = np.zeros((len(self.structure), len(self.structure)), dtype=complex)
         r_amp = np.zeros((len(self.structure), len(self.structure)), dtype=complex)
+        # debugging statement
+        print("\nr_amp is:")
+        for i in range(len(self.structure)):
+            for j in range(len(self.structure)):
+                print("{}{} {}".format(i,j,r_amp[i][j]))
+        # debugging statement
+        print("\nt_amp is:")
+        for i in range(len(self.structure)):
+            for j in range(len(self.structure)):
+                print("{}{} {}".format(i,j,t_amp[i][j]))
 
         for i in range(len(self.structure)-1):
             t_amp[i,i+1] = self._t_at_interface(polarization, n[i], n[i+1])
             r_amp[i,i+1] = self._r_at_interface(polarization, n[i], n[i+1])
+        # debugging statement
+        print("\nmod r_amp is:")
+        for i in range(len(self.structure)):
+            for j in range(len(self.structure)):
+                print("{}{} {}".format(i,j,r_amp[i][j]))
+        # debugging statement
+        print("\nmod t_amp is:")
+        for i in range(len(self.structure)):
+            for j in range(len(self.structure)):
+                print("{}{} {}".format(i,j,t_amp[i][j]))
 
         M = np.zeros((len(self.structure),2,2),dtype=complex)
+        # debugging statement
+        print("\nThe 'M' matrix is:")
+        for i in range(len(self.structure)):
+            for j in range(2):
+                for k in range(2):
+                    print("M{}{}{} ---> {}".format(i,j,k,M[i][j][k]))
+
         for i in range(1,len(self.structure)-1):
             M[i] = 1/t_amp[i,i+1] * np.dot(self._make_2x2(np.exp(-1j*delta[i]),
                                                           0., 0., np.exp(1j*delta[i]),
@@ -220,7 +247,20 @@ class Builder:
                                            self._make_2x2(1., r_amp[i,i+1], \
                                                               r_amp[i,i+1], 1., \
                                                               dtype=complex))
+        # debugging statement
+        print("\nThe modified 'M' matrix is:")
+        for i in range(len(self.structure)):
+            for j in range(2):
+                for k in range(2):
+                    print("mod M{}{}{} ---> {}".format(i,j,k,M[i][j][k]))
+
         M_prime = self._make_2x2(1., 0., 0., 1., dtype=complex)
+        # debugging statement
+        print("\nThe 'M_prime' matrix is:")
+        for i in range(2):
+            for j in range(2):
+                print("M_prime{}{} ---> {}".format(i,j,M_prime[i][j]))
+
         for i in range(1, len(self.structure)-1):
             M_prime = np.dot(M_prime, M[i])
         M_prime = np.dot(self._make_2x2(1., r_amp[0,1], r_amp[0,1], 1., \
