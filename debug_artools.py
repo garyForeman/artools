@@ -62,4 +62,43 @@ delta = b._find_k_offsets(k, d)
 print "\n", k
 print delta, "\n"
 
+r_amp = np.zeros((len(b.structure), len(b.structure)), dtype=complex)
+for i in range(len(b.structure)-1):
+    r_amp[i, i+1] = b._r_at_interface('s', n[i], n[i+1])
+
 rt = b._calc_R_T_amp('s', n, delta)
+
+# M = np.zeros((len(b.structure), 2, 2), dtype=complex)
+
+# for i in range(1, len(b.structure)-1):
+#     M[i] = np.dot(b._make_2x2(np.exp(-1j*delta[i]), 0., 0., np.exp(1j*delta[i]), dtype=complex), b._make_2x2(1., r_amp[i,i+1], r_amp[i,i+1], 1., dtype=complex))
+
+# print("\n\nWeirdo nonsense\n\n")
+# for i in M:
+#     print i
+
+# testA = np.zeros((2,2), dtype=float)
+# testB = np.zeros((2,2), dtype=float)
+# testProd = np.zeros((2,2), dtype=float)
+
+# valA = 1
+# valB = 5
+# for i in range(2):
+#     for j in range(2):
+#         testA[i][j] = valA
+#         testB[i][j] = valB
+#         valA += 1
+#         valB += 1
+
+# print testA
+# print testB
+
+# for i in range(2):
+#     for j in range(2):
+#         sum = 0
+#         for l in range(2):
+#             print "A{}{} --->".format(i,l), testA[i][l], " * B{}{}".format(l,j), testB[l][j]
+#             sum = sum + testA[i][l]*testB[l][j]
+#         testProd[i][j] = sum
+
+# print testProd

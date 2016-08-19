@@ -240,6 +240,33 @@ class Builder:
                 for k in range(2):
                     print("M{}{}{} ---> {}".format(i,j,k,M[i][j][k]))
 
+        m_r_amp = np.zeros((len(self.structure),2,2), dtype=complex)
+        m_t_amp = np.zeros((len(self.structure),2,2), dtype=complex)
+        for i in range(1,len(self.structure)-1):
+            m_t_amp[i] = self._make_2x2(np.exp(-1j*delta[i]), 0., 0., np.exp(1j*delta[i]), dtype=complex)
+            m_r_amp[i] = self._make_2x2(1., r_amp[i,i+1], r_amp[i,i+1], 1., dtype=complex)
+
+        print("\nThe temporary 'm_r_amp' matrix is:")
+        for i in range(len(self.structure)):
+            for j in range(2):
+                for k in range(2):
+                    print("m_r_amp{}{}{} ---> {}".format(i,j,k,m_r_amp[i][j][k]))
+
+        print("\nThe temporary 'm_t_amp' matrix is:")
+        for i in range(len(self.structure)):
+            for j in range(2):
+                for k in range(2):
+                    print("m_t_amp{}{}{} ---> {}".format(i,j,k,m_t_amp[i][j][k]))
+
+        m_temp = np.dot(m_t_amp, m_r_amp)
+        print("\nThe 'm_temp' matrix is:")
+        for i in m_temp:
+            print i
+#         for i in range(len(self.structure)):
+#             for j in range(2):
+#                 for k in range(2):
+#                     print("m_temp{}{}{} ---> {}".format(i,j,k,m_temp[i][j][k]))
+
         for i in range(1,len(self.structure)-1):
             M[i] = 1/t_amp[i,i+1] * np.dot(self._make_2x2(np.exp(-1j*delta[i]),
                                                           0., 0., np.exp(1j*delta[i]),
@@ -256,13 +283,18 @@ class Builder:
 
         M_prime = self._make_2x2(1., 0., 0., 1., dtype=complex)
         # debugging statement
-        print("\nThe 'M_prime' matrix is:")
+        print("\nThe first modified 'M_prime' matrix is:")
         for i in range(2):
             for j in range(2):
-                print("M_prime{}{} ---> {}".format(i,j,M_prime[i][j]))
+                print("1st mod M_prime{}{} ---> {}".format(i,j,M_prime[i][j]))
 
         for i in range(1, len(self.structure)-1):
             M_prime = np.dot(M_prime, M[i])
+        print("\nThe second modified 'M_prime' matrix is:")
+        for i in range(2):
+            for j in range(2):
+                print("2nd mod M_prime{}{} ---> {}".format(i,j,M_prime[i][j]))
+
         M_prime = np.dot(self._make_2x2(1., r_amp[0,1], r_amp[0,1], 1., \
                                             dtype=complex)/t_amp[0,1], M_prime)
         t = 1/M_prime[0,0]

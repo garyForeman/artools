@@ -213,12 +213,12 @@ double t_at_interface(double n1, double n2) {
 
 double ** make_2x2(void) {
   double ** matrix;
-  int i,j,val;
+  int val;
   val = 0;
   matrix = (double **)malloc(sizeof(double *)*2);
-  for (i=0; i<2; i++) {
+  for (int i=0; i<2; i++) {
     matrix[i] = (double *)malloc(sizeof(double)*2);
-    for (j=0; j<2; j++) {
+    for (int j=0; j<2; j++) {
       matrix[i][j] = val;
     }
   }
@@ -227,12 +227,12 @@ double ** make_2x2(void) {
 
 double _Complex ** make_complex_2x2(void) {
   double _Complex ** matrix;
-  int i,j,val;
+  int val;
   val = 0;
   matrix = (double _Complex **)malloc(sizeof(double _Complex *)*2);
-  for (i=0; i<2; i++) {
+  for (int i=0; i<2; i++) {
     matrix[i] = (double _Complex *)malloc(sizeof(double _Complex)*2);
-    for (j=0; j<2; j++) {
+    for (int j=0; j<2; j++) {
       matrix[i][j] = val;
     }
   }
@@ -241,14 +241,14 @@ double _Complex ** make_complex_2x2(void) {
 
 double _Complex *** make_complex_nd(int n) {
   double _Complex *** nd_matrix;
-  int i,j,k,val;
+  int val;
   val = 0;
   nd_matrix = (double _Complex ***)malloc(sizeof(double _Complex **)*n);
-  for (i=0; i<n; i++) {
+  for (int i=0; i<n; i++) {
     nd_matrix[i] = (double _Complex **)malloc(sizeof(double _Complex *)*2);
-    for (j=0; j<2; j++) {
+    for (int j=0; j<2; j++) {
       nd_matrix[i][j] = (double _Complex *)malloc(sizeof(double _Complex)*2);
-      for (k=0; k<2; k++) {
+      for (int k=0; k<2; k++) {
 	nd_matrix[i][j][k] = val;
       }
     }
@@ -276,100 +276,247 @@ double _Complex * calc_RT_amp(double frequency, double dielectric[NUM_LAYERS], d
   double _Complex t_amp[NUM_LAYERS][NUM_LAYERS] = {0};
   double _Complex *** M;
   double _Complex ** M_prime;
-  double _Complex ** m_r_amp;
-  double _Complex ** m_t_amp;
+  double _Complex *** m_r_amp;
+  double _Complex *** m_t_amp;
+  double _Complex *** m_rt_prod;
   double _Complex * RT_amp;
-  int i,j,k;
+  double _Complex sum;
+  //  int testA[2][2] = {1,2,3,4};
+  //  int testB[2][2] = {5,6,7,8};
+  //  int testProd[2][2] = {0};
+  //  int i,j,k,l;
 
   printf("\n#### Inside 'calc_RT_amp'. ####\n");
 
   RT_amp = (double _Complex *)malloc(sizeof(double _Complex)*2);
 
-  for (i=0; i<NUM_LAYERS; i++) {
+  for (int i=0; i<NUM_LAYERS; i++) {
     index[i] = get_index(dielectric[i]);
     delta[i] = find_k(frequency, index[i], loss[i], thickness[i]);
   }
 
   // print statements for debugging
   printf("\nHere are the refractive indices calculated from the dielectric constants passed to the function.\n");
-  for (i=0; i<NUM_LAYERS; i++) {
+  for (int i=0; i<NUM_LAYERS; i++) {
     printf("%lf\n", index[i]);
   }
   printf("\nHere are the deltas calculated from the input frequency, indices, losses, and thicknesses.\n");
-  for (i=0; i<NUM_LAYERS; i++) {
+  for (int i=0; i<NUM_LAYERS; i++) {
     printf("%lf+%lfi\n", creal(delta[i]), cimag(delta[i]));
   }
   printf("\nHere are the original values of 'r_amp' and 't_amp'.\n");
-  for (i=0; i<NUM_LAYERS; i++) {
-    for (j=0; j<NUM_LAYERS; j++) {
+  for (int i=0; i<NUM_LAYERS; i++) {
+    for (int j=0; j<NUM_LAYERS; j++) {
       printf("r_amp %d%d ---> %lf %lfi\n", i, j, creal(r_amp[i][j]), cimag(r_amp[i][j]));
 	}
   }
   printf("\n");
-  for (i=0; i<NUM_LAYERS; i++) {
-    for (j=0; j<NUM_LAYERS; j++) {
+  for (int i=0; i<NUM_LAYERS; i++) {
+    for (int j=0; j<NUM_LAYERS; j++) {
       printf("t_amp %d%d ---> %lf %lfi\n", i, j, creal(t_amp[i][j]), cimag(t_amp[i][j]));
     }
   }
 
-  for (i=0; i<NUM_LAYERS-1; i++) {
+  for (int i=0; i<NUM_LAYERS-1; i++) {
     r_amp[i][i+1] = r_at_interface(index[i], index[i+1]);
     t_amp[i][i+1] = t_at_interface(index[i], index[i+1]);
   }
   printf("\nHere are the modified values of 'r_amp' and 't_amp'.\n");
-  for (i=0; i<NUM_LAYERS; i++) {
-    for (j=0; j<NUM_LAYERS; j++) {
+  for (int i=0; i<NUM_LAYERS; i++) {
+    for (int j=0; j<NUM_LAYERS; j++) {
       printf("mod r_amp %d%d ---> %lf %lfi\n", i, j, creal(r_amp[i][j]), cimag(r_amp[i][j]));
     }
   }
   printf("\n");
-  for (i=0; i<NUM_LAYERS; i++) {
-    for (j=0; j<NUM_LAYERS; j++) {
+  for (int i=0; i<NUM_LAYERS; i++) {
+    for (int j=0; j<NUM_LAYERS; j++) {
       printf("mod t_amp %d%d ---> %lf %lfi\n", i, j, creal(t_amp[i][j]), cimag(t_amp[i][j]));
     }
   }
 
   M = make_complex_nd(NUM_LAYERS);
   printf("\nThe 'M' matrix is:\n");
-  for (i=0; i<NUM_LAYERS; i++) {
-    for (j=0; j<2; j++) {
-      for (k=0; k<2; k++) {
+  for (int i=0; i<NUM_LAYERS; i++) {
+    for (int j=0; j<2; j++) {
+      for (int k=0; k<2; k++) {
 	printf("M%d%d%d ---> %lf %lf\n", i, j, k, creal(M[i][j][k]), cimag(M[i][j][k]));
       }
     }
   }
 
-  m_r_amp = make_complex_2x2();
-  m_t_amp = make_complex_2x2();
+  m_r_amp = make_complex_nd(NUM_LAYERS);
+  m_t_amp = make_complex_nd(NUM_LAYERS);
   printf("\nThe temporary 'm_r_amp' matrix is:\n");
-  for (i=0; i<2; i++) {
-    for (j=0; j<2; j++) {
-      printf("m_r_amp%d%d ---> %lf %lf\n", i, j, creal(m_r_amp[i][j]), cimag(m_r_amp[i][j]));
+  for (int i=0; i<NUM_LAYERS; i++) {
+    for (int j=0; j<2; j++) {
+      for (int k=0; k<2; k++) {
+	printf("m_r_amp%d%d%d ---> %lf %lf\n", i, j, k, creal(m_r_amp[i][j][k]), cimag(m_r_amp[i][j][k]));
+      }
     }
   }  
   printf("\nThe temporary 'm_t_amp' matrix is:\n");
-  for (i=0; i<2; i++) {
-    for (j=0; j<2; j++) {
-      printf("m_t_amp%d%d ---> %lf %lf\n", i, j, creal(m_t_amp[i][j]), cimag(m_t_amp[i][j]));
+  for (int i=0; i<NUM_LAYERS; i++) {
+    for (int j=0; j<2; j++) {
+      for (int k=0; k<2; k++) {
+	printf("m_t_amp%d%d%d ---> %lf %lf\n", i, j, k, creal(m_t_amp[i][j][k]), cimag(m_t_amp[i][j][k]));
+      }
+    }
+  }
+
+  for (int i=1; i<NUM_LAYERS-1; i++) {
+    m_t_amp[i][0][0] = cexp(-1*delta[i]*I);
+    m_t_amp[i][0][1] = 0.0;
+    m_t_amp[i][1][0] = 0.0;
+    m_t_amp[i][1][1] = cexp(delta[i]*I);
+    m_r_amp[i][0][0] = 1.0;
+    m_r_amp[i][0][1] = r_amp[i][i+1];
+    m_r_amp[i][1][0] = r_amp[i][i+1];
+    m_r_amp[i][1][1] = 1.0;
+  }
+
+  printf("\nThe modified temporary 'm_r_amp' matrix is:\n");
+  for (int i=0; i<NUM_LAYERS; i++) {
+    for (int j=0; j<2; j++) {
+      for (int k=0; k<2; k++) {
+        printf("mod m_r_amp%d%d%d ---> %lf %lf\n", i, j, k, creal(m_r_amp[i][j][k]), cimag(m_r_amp[i][j][k]));
+      }
+    }
+  }
+
+  printf("\nThe modified temporary 'm_t_amp' matrix is:\n");
+  for (int i=0; i<NUM_LAYERS; i++) {
+    for (int j=0; j<2; j++) {
+      for (int k=0; k<2; k++) {
+        printf("mod m_t_amp%d%d%d ---> %lf %lf\n", i, j, k, creal(m_t_amp[i][j][k]), cimag(m_t_amp[i][j][k]));
+      }
+    }
+  }
+
+  m_rt_prod = make_complex_nd(NUM_LAYERS);
+  printf("\nThe temporary 'm_rt_prod' matrix is:\n");
+  for (int i=0; i<NUM_LAYERS; i++) {
+    for (int j=0; j<2; j++) {
+      for (int k=0; k<2; k++) {
+        printf("m_rt_prod%d%d%d ---> %lf %lf\n", i, j, k, creal(m_rt_prod[i][j][k]), cimag(m_rt_prod[i][j][k]));
+      }
+    }
+  }
+
+  printf("\n");
+  for (int i=0; i<NUM_LAYERS; i++) {
+    for (int j=0; j<2; j++) {
+      for (int k=0; k<2; k++) {
+	sum = 0;
+	for (int l=0; l<2; l++) {
+	  //	  printf("multiplying m_t_amp%d%d%d by m_r_amp%d%d%d\n", i, j, l, i, l, k);
+	  sum = sum + (m_t_amp[i][j][l]*m_r_amp[i][l][k]);
+	}
+	m_rt_prod[i][j][k] = sum;
+	M[i][j][k] = sum;
+      }
+    }
+  }
+  printf("\nThe modified temporary 'm_rt_prod' matrix is:\n");
+  for (int i=0; i<NUM_LAYERS; i++) {
+    for (int j=0; j<2; j++) {
+      for (int k=0; k<2; k++) {
+        printf("mod m_rt_prod%d%d%d ---> %lf %lf\n", i, j, k, creal(m_rt_prod[i][j][k]), cimag(m_rt_prod[i][j][k]));
+      }
+    }
+  }
+
+  printf("\nThe first modified 'M' matrix is:\n");
+  for (int i=0; i<NUM_LAYERS; i++) {
+    for (int j=0; j<2; j++) {
+      for (int k=0; k<2; k++) {
+        printf("1st mod M%d%d%d ---> %lf %lf\n", i, j, k, creal(M[i][j][k]), cimag(M[i][j][k]));
+      }
+    }
+  }
+
+  for (int i=1; i<NUM_LAYERS-1; i++) {
+    for (int j=0; j<2; j++) {
+      for (int k=0; k<2; k++) {
+	M[i][j][k] = M[i][j][k]*(1/t_amp[i][i+1]);
+      }
+    }
+  }
+
+  printf("\nThe second modified 'M' matrix is:\n");
+  for (int i=0; i<NUM_LAYERS; i++) {
+    for (int j=0; j<2; j++) {
+      for (int k=0; k<2; k++) {
+        printf("2nd mod M%d%d%d ---> %lf %lf\n", i, j, k, creal(M[i][j][k]), cimag(M[i][j][k]));
+      }
     }
   }
 
   M_prime = make_complex_2x2();
   printf("\nThe 'M_prime' matrix is:\n");
-  for (i=0; i<2; i++) {
-    for (j=0; j<2; j++) {
+  for (int i=0; i<2; i++) {
+    for (int j=0; j<2; j++) {
         printf("M_prime%d%d ---> %lf %lf\n", i, j, creal(M_prime[i][j]), cimag(M_prime[i][j]));
     }
   }
 
   M_prime[0][0] = 1.0;
   M_prime[1][1] = 1.0;
-  printf("\nThe modified 'M_prime' matrix is:\n");
-  for (i=0; i<2; i++) {
-    for (j=0; j<2; j++) {
-      printf("mod M_prime%d%d ---> %lf %lf\n", i, j, creal(M_prime[i][j]), cimag(M_prime[i][j]));
+  printf("\nThe first modified 'M_prime' matrix is:\n");
+  for (int i=0; i<2; i++) {
+    for (int j=0; j<2; j++) {
+      printf("1st mod M_prime%d%d ---> %lf %lf\n", i, j, creal(M_prime[i][j]), cimag(M_prime[i][j]));
     }
   }
+
+  for (int i=1; i<NUM_LAYERS-1; i++) {
+    for (int j=0; j<2; j++) {
+      for (int k=0; k<2; k++) {
+	sum = 0;
+	for (int l=0; l<2; l++) {
+	  sum = sum + M_prime[j][l]*M[i][l][k];
+	}
+	M_prime[j][k] = sum;
+      }
+    }
+  }
+
+  printf("\nThe second modified 'M_prime' matrix is:\n");
+  for (int i=0; i<2; i++) {
+    for (int j=0; j<2; j++) {
+      printf("2nd mod M_prime%d%d ---> %lf %lf\n", i, j, creal(M_prime[i][j]), cimag(M_prime[i][j]));
+    }
+  }
+
+/*   printf("\nSimple 2x2 matrix multiplication example\n"); */
+/*   printf("The inputs for matrix A are:\n"); */
+/*   for (int i=0; i<2; i++) { */
+/*     for (int j=0; j<2; j++) { */
+/*       printf("A%d%d ---> %d\n", i, j, testA[i][j]); */
+/*     } */
+/*   } */
+/*   printf("\nThe inputs for matrix B are:\n"); */
+/*   for (int i=0; i<2; i++) { */
+/*     for (int j=0; j<2; j++) { */
+/*       printf("A%d%d ---> %d\n", i, j, testB[i][j]); */
+/*     } */
+/*   } */
+
+/*   for (int i=0; i<2; i++) { */
+/*     for (int j=0; j<2; j++) { */
+/*       sum = 0; */
+/*       for (int k=0; k<2; k++) { */
+/* 	sum = sum + testA[i][k]*testB[k][j]; */
+/*       } */
+/*       testProd[i][j] = sum; */
+/*     } */
+/*   } */
+
+/*   printf("\nThe product of A and B is:\n"); */
+/*   for (int i=0; i<2; i++) { */
+/*     for (int j=0; j<2; j++) { */
+/*       printf("AB%d%d ---> %d\n", i, j, testProd[i][j]); */
+/*     } */
+/*   } */
 
   RT_amp[0] = -1.0-1.0*I;
   printf("\n#### Leaving 'calc_RT_amp' ####\n");
