@@ -276,6 +276,7 @@ double _Complex * calc_RT_amp(double frequency, double dielectric[NUM_LAYERS], d
   double _Complex t_amp[NUM_LAYERS][NUM_LAYERS] = {0};
   double _Complex *** M;
   double _Complex ** M_prime;
+  double _Complex ** M2_prime;
   double _Complex *** m_r_amp;
   double _Complex *** m_t_amp;
   double _Complex *** m_rt_prod;
@@ -452,10 +453,17 @@ double _Complex * calc_RT_amp(double frequency, double dielectric[NUM_LAYERS], d
   }
 
   M_prime = make_complex_2x2();
+  M2_prime = make_complex_2x2();
   printf("\nThe 'M_prime' matrix is:\n");
   for (int i=0; i<2; i++) {
     for (int j=0; j<2; j++) {
         printf("M_prime%d%d ---> %lf %lf\n", i, j, creal(M_prime[i][j]), cimag(M_prime[i][j]));
+    }
+  }
+  printf("\nThe 'M2_prime' matrix is:\n");
+  for (int i=0; i<2; i++) {
+    for (int j=0; j<2; j++) {
+      printf("M2_prime%d%d ---> %lf %lf\n", i, j, creal(M2_prime[i][j]), cimag(M2_prime[i][j]));
     }
   }
 
@@ -473,9 +481,22 @@ double _Complex * calc_RT_amp(double frequency, double dielectric[NUM_LAYERS], d
       for (int k=0; k<2; k++) {
 	sum = 0;
 	for (int l=0; l<2; l++) {
+	  printf("\n\n##################\nM_prime%d%d and M%d%d%d\n##################", j, l, i, l, k);
+	  printf("\n'sum A' is ---> %lf %lfi", creal(sum), cimag(sum));
+	  printf("\nMultiplying %lf %lfi by %lf %lfi", 
+		 creal(M_prime[j][l]), cimag(M_prime[j][l]), creal(M[i][l][k]), cimag(M[i][l][k]));
 	  sum = sum + M_prime[j][l]*M[i][l][k];
+	  printf("\n'sum B' is ---> %lf %lfi", creal(sum), cimag(sum));
 	}
-	M_prime[j][k] = sum;
+	M2_prime[j][k] = sum;
+	printf("\n\n>>>>>'M2_prime%d%d #%d' is ---> %lf %lfi <<<<<\n", 
+	       j, k, i, creal(M2_prime[j][k]), cimag(M2_prime[j][k]));
+      }
+    }
+    for (int j=0; j<2; j++) {
+      for (int k=0; k<2; k++) {
+	M_prime[j][k] = M2_prime[j][k];
+	M2_prime[j][k] = 0.;
       }
     }
   }
@@ -483,7 +504,8 @@ double _Complex * calc_RT_amp(double frequency, double dielectric[NUM_LAYERS], d
   printf("\nThe second modified 'M_prime' matrix is:\n");
   for (int i=0; i<2; i++) {
     for (int j=0; j<2; j++) {
-      printf("2nd mod M_prime%d%d ---> %lf %lf\n", i, j, creal(M_prime[i][j]), cimag(M_prime[i][j]));
+      printf("2nd mod M_prime%d%d ---> %lf %lf\n", 
+	     i, j, creal(M_prime[i][j]), cimag(M_prime[i][j]));
     }
   }
 

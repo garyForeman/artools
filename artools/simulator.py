@@ -289,6 +289,7 @@ class Builder:
                 print("1st mod M_prime{}{} ---> {}".format(i,j,M_prime[i][j]))
 
         for i in range(1, len(self.structure)-1):
+            print("\n'M_prime' #{} is:\n{}".format(i,M_prime))
             M_prime = np.dot(M_prime, M[i])
         print("\nThe second modified 'M_prime' matrix is:")
         for i in range(2):
