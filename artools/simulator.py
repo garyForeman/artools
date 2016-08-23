@@ -300,6 +300,8 @@ class Builder:
                                             dtype=complex)/t_amp[0,1], M_prime)
         t = 1/M_prime[0,0]
         r = M_prime[0,1]/M_prime[0,0]
+        print("\n't' ---> {}".format(t))
+        print("\n'r' ---> {}".format(r))
         return (r, t)
 
     def _d_converter(self):

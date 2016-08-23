@@ -277,6 +277,7 @@ double _Complex * calc_RT_amp(double frequency, double dielectric[NUM_LAYERS], d
   double _Complex *** M;
   double _Complex ** M_prime;
   double _Complex ** M2_prime;
+  double _Complex ** M_final;
   double _Complex *** m_r_amp;
   double _Complex *** m_t_amp;
   double _Complex *** m_rt_prod;
@@ -508,6 +509,31 @@ double _Complex * calc_RT_amp(double frequency, double dielectric[NUM_LAYERS], d
 	     i, j, creal(M_prime[i][j]), cimag(M_prime[i][j]));
     }
   }
+  printf("\nThe modified 'M2_prime' matrix is:\n");
+  for (int i=0; i<2; i++) {
+    for (int j=0; j<2; j++) {
+      printf("mod M2_prime%d%d ---> %lf %lf\n",
+             i, j, creal(M2_prime[i][j]), cimag(M2_prime[i][j]));
+    }
+  }
+
+  M2_prime[0][0] = 1.;
+  M2_prime[0][1] = r_amp[0][1]/t_amp[0][1];
+  M2_prime[1][0] = r_amp[0][1]/t_amp[0][1];
+  M2_prime[1][1] = 1.;
+  
+  for (int i=0; i<2; i++) {
+    for (int j=0; j<2; j++) {
+      sum = 0;
+      for (int l=0; l<2; l++) {
+	sum = sum + M2_prime[i][l]*M_prime[l][j];
+      }
+      M_final[i][j] = sum;
+    }
+  }
+
+
+
 
 /*   printf("\nSimple 2x2 matrix multiplication example\n"); */
 /*   printf("The inputs for matrix A are:\n"); */
@@ -540,7 +566,12 @@ double _Complex * calc_RT_amp(double frequency, double dielectric[NUM_LAYERS], d
 /*     } */
 /*   } */
 
-  RT_amp[0] = -1.0-1.0*I;
+  RT_amp[0] = 1/M_prime[0][0];
+  RT_amp[1] = M_prime[0][1]/M_prime[0][0];
+
+  printf("\n't' ---> %lf %lfi", creal(RT_amp[0]), cimag(RT_amp[0]));
+  printf("\n'r' ---> %lf %lfi", creal(RT_amp[1]), cimag(RT_amp[1]));
+
   printf("\n#### Leaving 'calc_RT_amp' ####\n");
   return RT_amp;
 }
