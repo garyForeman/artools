@@ -296,12 +296,27 @@ class Builder:
             for j in range(2):
                 print("2nd mod M_prime{}{} ---> {}".format(i,j,M_prime[i][j]))
 
+        print("\nr_amp01 is ---> {}".format(r_amp[0,1]))
+        print("t_amp01 is ---> {}".format(t_amp[0,1]))
+
+        mod_M_prime = self._make_2x2(1.,r_amp[0,1], r_amp[0,1], 1., dtype=complex)/t_amp[0,1]
+        print("\nThe third modified 'M_prime' matrix is:")
+        for i in range(2):
+            for j in range(2):
+                print("3rd mod M_prime{}{} ---> {}".format(i, j, mod_M_prime[i][j]))
+
         M_prime = np.dot(self._make_2x2(1., r_amp[0,1], r_amp[0,1], 1., \
                                             dtype=complex)/t_amp[0,1], M_prime)
+
+        print("\nThe 'M_final' matrix is:")
+        for i in range(2):
+            for j in range(2):
+                print("M_final{}{} ---> {}".format(i, j, M_prime[i][j]))
+
         t = 1/M_prime[0,0]
         r = M_prime[0,1]/M_prime[0,0]
         print("\n't' ---> {}".format(t))
-        print("\n'r' ---> {}".format(r))
+        print("'r' ---> {}".format(r))
         return (r, t)
 
     def _d_converter(self):
