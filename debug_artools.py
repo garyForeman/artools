@@ -68,6 +68,12 @@ for i in range(len(b.structure)-1):
 
 rt = b._calc_R_T_amp('s', n, delta)
 
+T = b._get_T('s', rt[1], n[0], n[-1])
+R = b._get_R(rt[0])
+
+print("\nPercent transmission is ---> {}".format(T))
+print("Percent reflection is ---> {}".format(R))
+
 # M = np.zeros((len(b.structure), 2, 2), dtype=complex)
 
 # for i in range(1, len(b.structure)-1):
