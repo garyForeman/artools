@@ -12,7 +12,7 @@ class Electrical:
 	# key is material name, first entry is dielectric constant, second entry is loss tangent
 	props = {
                     'alumina' : (9.7, 7.4e-4),
-                    'eptfe' : (2.4, 2.5e-4),
+                    'eptfe' : (1.6, 2.5e-4),
                     'ideal2' : (2., 0.),
                     'ideal4' : (4., 0.),
                     'ideal7' : (7., 0.),

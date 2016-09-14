@@ -221,6 +221,7 @@ class Plot:
         ax.set_title(self.title)
         ax.set_ylabel(self.ylabel)
         ax.set_xlabel(self.xlabel)
+        ax.set_ylim(0.6,1.025)
         self._shape_data()
         if self.type == 'Transmission':
             ax.plot(self.data[0], self.data[1])

@@ -150,6 +150,9 @@ class Builder:
 
     Attributes
     ----------
+    bands : list
+        A list of n tuples, with each tuple composed of a lower and upper limit
+        for a frequency band in units of hertz. Default is the SPT-3G bands.
     freq_sweep : array
         The range of frequencies to be simulated. Defaults to 0. Set a frequency
         sweep by calling ``set_freq_sweep()``.
@@ -178,7 +181,9 @@ class Builder:
         Defaults is `None`.
     """
     def __init__(self):
+        self.bands = [(81.7e9, 107.5e9),(128.6e9, 167.2e9),(196.9e9, 249.2e9)]
         self.freq_sweep = 0.
+        self.log_name = 'log_simulation_{t}.txt'.format(t=time.ctime(time.time()))
         self.optimization_frequency = 160e9        # given in Hz, i.e. 160 GHz
         self.save_name = 'transmission_data_{t}.txt'.format(t=time.ctime(time.time()))
         self.save_path = '.'
@@ -207,38 +212,38 @@ class Builder:
         """
         t_amp = np.zeros((len(self.structure), len(self.structure)), dtype=complex)
         r_amp = np.zeros((len(self.structure), len(self.structure)), dtype=complex)
-        # debugging statement
-        print("\nr_amp is:")
-        for i in range(len(self.structure)):
-            for j in range(len(self.structure)):
-                print("{}{} {}".format(i,j,r_amp[i][j]))
-        # debugging statement
-        print("\nt_amp is:")
-        for i in range(len(self.structure)):
-            for j in range(len(self.structure)):
-                print("{}{} {}".format(i,j,t_amp[i][j]))
+#         # debugging statement
+#         print("\nr_amp is:")
+#         for i in range(len(self.structure)):
+#             for j in range(len(self.structure)):
+#                 print("{}{} {}".format(i,j,r_amp[i][j]))
+#         # debugging statement
+#         print("\nt_amp is:")
+#         for i in range(len(self.structure)):
+#             for j in range(len(self.structure)):
+#                 print("{}{} {}".format(i,j,t_amp[i][j]))
 
         for i in range(len(self.structure)-1):
             t_amp[i,i+1] = self._t_at_interface(polarization, n[i], n[i+1])
             r_amp[i,i+1] = self._r_at_interface(polarization, n[i], n[i+1])
-        # debugging statement
-        print("\nmod r_amp is:")
-        for i in range(len(self.structure)):
-            for j in range(len(self.structure)):
-                print("{}{} {}".format(i,j,r_amp[i][j]))
-        # debugging statement
-        print("\nmod t_amp is:")
-        for i in range(len(self.structure)):
-            for j in range(len(self.structure)):
-                print("{}{} {}".format(i,j,t_amp[i][j]))
+#         # debugging statement
+#         print("\nmod r_amp is:")
+#         for i in range(len(self.structure)):
+#             for j in range(len(self.structure)):
+#                 print("{}{} {}".format(i,j,r_amp[i][j]))
+#         # debugging statement
+#         print("\nmod t_amp is:")
+#         for i in range(len(self.structure)):
+#             for j in range(len(self.structure)):
+#                 print("{}{} {}".format(i,j,t_amp[i][j]))
 
         M = np.zeros((len(self.structure),2,2),dtype=complex)
-        # debugging statement
-        print("\nThe 'M' matrix is:")
-        for i in range(len(self.structure)):
-            for j in range(2):
-                for k in range(2):
-                    print("M{}{}{} ---> {}".format(i,j,k,M[i][j][k]))
+#         # debugging statement
+#         print("\nThe 'M' matrix is:")
+#         for i in range(len(self.structure)):
+#             for j in range(2):
+#                 for k in range(2):
+#                     print("M{}{}{} ---> {}".format(i,j,k,M[i][j][k]))
 
         m_r_amp = np.zeros((len(self.structure),2,2), dtype=complex)
         m_t_amp = np.zeros((len(self.structure),2,2), dtype=complex)
@@ -246,22 +251,26 @@ class Builder:
             m_t_amp[i] = self._make_2x2(np.exp(-1j*delta[i]), 0., 0., np.exp(1j*delta[i]), dtype=complex)
             m_r_amp[i] = self._make_2x2(1., r_amp[i,i+1], r_amp[i,i+1], 1., dtype=complex)
 
-        print("\nThe temporary 'm_r_amp' matrix is:")
-        for i in range(len(self.structure)):
-            for j in range(2):
-                for k in range(2):
-                    print("m_r_amp{}{}{} ---> {}".format(i,j,k,m_r_amp[i][j][k]))
+#         # debugging statement
+#         print("\nThe temporary 'm_r_amp' matrix is:")
+#         for i in range(len(self.structure)):
+#             for j in range(2):
+#                 for k in range(2):
+#                     print("m_r_amp{}{}{} ---> {}".format(i,j,k,m_r_amp[i][j][k]))
 
-        print("\nThe temporary 'm_t_amp' matrix is:")
-        for i in range(len(self.structure)):
-            for j in range(2):
-                for k in range(2):
-                    print("m_t_amp{}{}{} ---> {}".format(i,j,k,m_t_amp[i][j][k]))
+#         # debugging statement
+#         print("\nThe temporary 'm_t_amp' matrix is:")
+#         for i in range(len(self.structure)):
+#             for j in range(2):
+#                 for k in range(2):
+#                     print("m_t_amp{}{}{} ---> {}".format(i,j,k,m_t_amp[i][j][k]))
 
         m_temp = np.dot(m_t_amp, m_r_amp)
-        print("\nThe 'm_temp' matrix is:")
-        for i in m_temp:
-            print i
+
+#         # debugging statement
+#         print("\nThe 'm_temp' matrix is:")
+#         for i in m_temp:
+#             print i
 #         for i in range(len(self.structure)):
 #             for j in range(2):
 #                 for k in range(2):
@@ -274,49 +283,58 @@ class Builder:
                                            self._make_2x2(1., r_amp[i,i+1], \
                                                               r_amp[i,i+1], 1., \
                                                               dtype=complex))
-        # debugging statement
-        print("\nThe modified 'M' matrix is:")
-        for i in range(len(self.structure)):
-            for j in range(2):
-                for k in range(2):
-                    print("mod M{}{}{} ---> {}".format(i,j,k,M[i][j][k]))
+#         # debugging statement
+#         print("\nThe modified 'M' matrix is:")
+#         for i in range(len(self.structure)):
+#             for j in range(2):
+#                 for k in range(2):
+#                     print("mod M{}{}{} ---> {}".format(i,j,k,M[i][j][k]))
 
         M_prime = self._make_2x2(1., 0., 0., 1., dtype=complex)
-        # debugging statement
-        print("\nThe first modified 'M_prime' matrix is:")
-        for i in range(2):
-            for j in range(2):
-                print("1st mod M_prime{}{} ---> {}".format(i,j,M_prime[i][j]))
+
+#         # debugging statement
+#         print("\nThe first modified 'M_prime' matrix is:")
+#         for i in range(2):
+#             for j in range(2):
+#                 print("1st mod M_prime{}{} ---> {}".format(i,j,M_prime[i][j]))
 
         for i in range(1, len(self.structure)-1):
-            print("\n'M_prime' #{} is:\n{}".format(i,M_prime))
+#            print("\n'M_prime' #{} is:\n{}".format(i,M_prime))
             M_prime = np.dot(M_prime, M[i])
-        print("\nThe second modified 'M_prime' matrix is:")
-        for i in range(2):
-            for j in range(2):
-                print("2nd mod M_prime{}{} ---> {}".format(i,j,M_prime[i][j]))
 
-        print("\nr_amp01 is ---> {}".format(r_amp[0,1]))
-        print("t_amp01 is ---> {}".format(t_amp[0,1]))
+#         # debugging statement
+#         print("\nThe second modified 'M_prime' matrix is:")
+#         for i in range(2):
+#             for j in range(2):
+#                 print("2nd mod M_prime{}{} ---> {}".format(i,j,M_prime[i][j]))
+
+#         print("\nr_amp01 is ---> {}".format(r_amp[0,1]))
+#         print("t_amp01 is ---> {}".format(t_amp[0,1]))
 
         mod_M_prime = self._make_2x2(1.,r_amp[0,1], r_amp[0,1], 1., dtype=complex)/t_amp[0,1]
-        print("\nThe third modified 'M_prime' matrix is:")
-        for i in range(2):
-            for j in range(2):
-                print("3rd mod M_prime{}{} ---> {}".format(i, j, mod_M_prime[i][j]))
+
+#         # debugging statement
+#         print("\nThe third modified 'M_prime' matrix is:")
+#         for i in range(2):
+#             for j in range(2):
+#                 print("3rd mod M_prime{}{} ---> {}".format(i, j, mod_M_prime[i][j]))
 
         M_prime = np.dot(self._make_2x2(1., r_amp[0,1], r_amp[0,1], 1., \
                                             dtype=complex)/t_amp[0,1], M_prime)
 
-        print("\nThe 'M_final' matrix is:")
-        for i in range(2):
-            for j in range(2):
-                print("M_final{}{} ---> {}".format(i, j, M_prime[i][j]))
+#         # debugging statement
+#         print("\nThe 'M_final' matrix is:")
+#         for i in range(2):
+#             for j in range(2):
+#                 print("M_final{}{} ---> {}".format(i, j, M_prime[i][j]))
 
         t = 1/M_prime[0,0]
         r = M_prime[0,1]/M_prime[0,0]
-        print("\n't' ---> {}".format(t))
-        print("'r' ---> {}".format(r))
+
+#         # debugging statement
+#         print("\n't' ---> {}".format(t))
+#         print("'r' ---> {}".format(r))
+
         return (r, t)
 
     def _d_converter(self):
@@ -352,7 +370,8 @@ class Builder:
             The complex wavenumber, k
         """
         if lossy:
-            k = 2*np.pi*n*frequency*(1-0.5j*tan)/3e8
+            k = 2*np.pi*n*frequency*(1+0.5j*tan)/3e8 # New expression for loss (as of 9/13/16), this one is more physical (i.e. subtractive)
+#             k = 2*np.pi*n*frequency*(1-0.5j*tan)/3e8 # Original expression for loss (pre 9/13/16), but it is incorrectly ADDITIVE
         else:
             k = 2*np.pi*n*frequency/3e8
         return k
@@ -413,6 +432,12 @@ class Builder:
         else:
             raise ValueError("Polarization must be 's' or 'p'")
 
+    def _get_bandpass_stats(self):
+        mean = []
+        for band in self.bands:
+            pass
+        pass
+
     def _interconnect(self):
         """Connect all the AR coating layer objects, ensuring that the source
         and terminator layers come first and last, respectively.
@@ -447,7 +472,10 @@ class Builder:
         array[1,1] = A22
         return array
 
-    def _make_save_path(self):
+    def _make_log(self):
+        pass
+
+    def _make_save_path(self, save_path, save_name):
         """Assemble the file name and path to the results file.
         
         Returns
@@ -455,11 +483,11 @@ class Builder:
         path : string
             The full path to the save destination for the simulation results
         """
-        if self.save_name.endswith('.txt'):
-            path = os.path.join(self.save_path, self.save_name)
+        if save_name.endswith('.txt'):
+            path = os.path.join(save_path, save_name)
         else:
-            self.save_name = self.save_name+'.txt'
-            path = os.path.join(self.save_path, self.save_name)
+            self.save_name = save_name+'.txt'
+            path = os.path.join(save_path, save_name)
         return path
 
     def _r_at_interface(self, polarization, n_1, n_2):
@@ -737,10 +765,16 @@ class Builder:
         rs = np.asarray(r_list)
         results = np.array([fs, ts, rs])
         t = time.ctime(time.time())
-        fname = self._make_save_path()
+        data_name = self._make_save_path(self.save_path, self.save_name)
         header = 'Frequency (Hz)\t\tTransmission amplitude\t\tReflection amplitude'
-        with open(fname, 'wb') as f:
+#         log_name = self._make_save_path(self.save_path, self.log_name)
+#         log = self._make_log()
+        with open(data_name, 'wb') as f:
             np.savetxt(f, np.c_[fs, ts, rs], delimiter='\t', header=header)
+#         with open(log_name, 'wb') as f:
+#             for line in log:
+#                 f.writelines(line)
+#                 f.write('\n')
         print('Finished running AR coating simulation')
         t1 = time.time()
         t_elapsed = t1-t0
