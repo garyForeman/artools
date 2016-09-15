@@ -26,34 +26,31 @@ The results of the simulation are calculated using a transfer matrix method (TMM
 
 ### Work Flow:
 ***
-The 
 
-An example follows below:
+1. Create a "Builder" (the name is a relic from an earlier iteration of this code).
 
-```python
+2. Choose a frequency range.
 
-import artools as ar
+3. Set a source medium, i.e. the medium from which the wave it produced.
 
-b = ar.simulator.Builder()
+4. Add layers of anti-reflective material. You can either specify a name, thickness, dielectric constant, and loss tangent, or you can select a material from the list of known materials within the progrom.
 
-b.set_freq_sweep(0.,300.)
-b.add_layer('eptfe', 15.0)
-b.add_layer('ro3035', 5.0)
-b.add_layer('ro3006', 5.0)
+5. Set a terminating medium.
 
-results = b.run_sim()
+6. Execute the simulation.
 
-my_plot = ar.plotter.TransmissionPlot()
 
-my_plot.load_data(results)
-my_plot.make_plot()
-```
+After the simulation runs you will be left with a columnized, tab-separated, text file. The columns are frequency, fractional transmission, and fractional reflection (and also labeled in a comment/header in the file). You can use the limited plotting functionality included in this program to view the results quickly to see if they're worth keeping.
+
+### Examples
+***
+I'll make a folder for example scripts. Some day.
 
 ### Future Improvements:
 ***
 * Expand library of materials and material properties
 * Implement temperature-dependent loss
-* Implement non-normal starting angles
+* Implement non-normal incidence angles
 * Implement emcee
 * GUI?
 
