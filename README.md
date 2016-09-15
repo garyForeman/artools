@@ -7,22 +7,31 @@
 ***
 artools is designed to allow a user to easily simulate and visualize anti-reflection coating performance. The coating can be composed of a single material, or many layers of different materials. The program calculates reflection and transmission at each interface, accounting for dielectric loss as light propagates through the media. The results can be easily visualized with artools' plotting functionality. The artools plotting routines are matplotlib functions wrapped and combined to generate plots that are useful for assessing transmission or reflection of an electromagnetic wave.
 
-The program is intended to be easy to use, so much of the heavy-lifting is hidden from the user in interactive mode (e.g. iPython) by using single underscore notation.
-
-### Dependencies:
-***
-* glob
-* matplotlib
-* numpy
-* os
-* pprint
-* scipy
-* shutil
-* time
+The program is intended to be easy to use--if it isn't, I would like to hear your feed back. That said, it would also be nice to hear what you like and what you would like to see. Please email me, stop me in the hall, make smoke signals, or send a telegram. Something.
 
 ### How it Works:
 ***
 The results of the simulation are calculated using a transfer matrix method (TMM). This particular transfer matrix method was written by H.S. Hou and published in Applied Optics Volume 13 Number 8, 1974. The Hou TMM is a computationally efficient means of calculating reflection and transmission through multilayer media.
+
+### Dependencies:
+***
+Non-standard library (Python 2.7):
+* matplotlib
+* numpy
+* scipy
+
+Standard library (Python 2.7)
+* glob
+* os
+* pprint
+* shutil
+* time
+
+### Getting artools:
+***
+Right now, the easiest/best/only way to get artools is to download this repository. You have to have matplotlib, numpy, and scipy installed before this program will work (see the "Dependencies" section above). If you use the Anaconda package manager, then all these packages are already installed. If you don't use Anaconda, then you may have to search them out on your own.
+
+I'm working on a conda install for the package.
 
 ### Work Flow:
 ***
@@ -46,13 +55,15 @@ After the simulation runs you will be left with a columnized, tab-separated, tex
 ***
 I'll make a folder for example scripts. Some day.
 
-### Future Improvements:
+### TODO:
 ***
 * Expand library of materials and material properties
 * Implement temperature-dependent loss
 * Implement non-normal incidence angles
 * Implement emcee
 * GUI?
+* Better documentation!
+* Make an examples folder
 
 ### Acknowledgements:
 ***
