@@ -80,10 +80,11 @@ class Plot:
         self.data = None
         self.draw_bandpasses = False
         self.draw_legend = False
-        self.frequency_units = 'GHz'
+        self.frequency_units = 'Hz'
         self.raw_data = None
         self.save_name = 'my_plot_{t}.pdf'.format(t=time.ctime(time.time()))
         self.save_path = '.'
+        self.sim_setup = None
         self.title = 'Generic plot'
         self.type = 'Generic'
         self.vs_frequency = True
@@ -150,11 +151,12 @@ class Plot:
         """Does some basic data manipulation based on plot attributes
         such as preferred units
         """
-        freq_units = {'Hz':1, 'KHz':10**3, 'MHz':10**6, 'GHz':10**9, 'THz':10**12}
-        wave_units = {'m':1, 'cm':10**-2, 'mm':10**-3, 'um':10**-6, 'micron':10**-6}
+        freq_units = {'Hz':1., 'KHz':1e3, 'MHz':1e6, 'GHz':1e9, 'THz':1e12,
+                      'hz':1., 'khz':1e3, 'mhz':1e6, 'ghz':1e9, 'thz':1e12}
+        wave_units = {'m':1., 'cm':1e-2, 'mm':1e-3, 'um':1e-6, 'micron':1e-6}
         if self.vs_frequency:
             try:
-                self.data[0] = self.data[0]/freq_units[self.frequency_units]
+                self.data['freqs'] = self.data['freqs']/freq_units[self.frequency_units]
             except:
                 raise ValueError('Unrecognized frequency units. See plotter.Plot() docstring for accepted units.')
         else:
@@ -201,8 +203,10 @@ class Plot:
             The data to be plotted. Replaces any existing data in
             the 'data' and 'raw_data' attributes.
         """
-        self.data = data
-        self.raw_data = data
+        self.sim_setup = data['input']
+        self.frequency_units = self.sim_setup['f_units']
+        self.data = data['output']
+        self.raw_data = data['output']
         return
 
     def make_plot(self):
@@ -221,14 +225,14 @@ class Plot:
         ax.set_title(self.title)
         ax.set_ylabel(self.ylabel)
         ax.set_xlabel(self.xlabel)
-        ax.set_ylim(0.6,1.025)
+        ax.set_ylim(0.,1.025)
         self._shape_data()
         if self.type == 'Transmission':
-            ax.plot(self.data[0], self.data[1])
+            ax.plot(self.data['freqs'], self.data['T'])
         elif self.type == 'Reflection':
-            ax.plot(self.data[0], self.data[2])
+            ax.plot(self.data['freqs'], self.data['R'])
         else:
-            ax.plot(self.data[0], self.data[0])
+            ax.plot(self.data['freqs'], self.data['freqs'])
         if self.draw_bandpasses:
             self._draw_bandpasses()
         if self.draw_legend:

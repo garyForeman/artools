@@ -761,15 +761,22 @@ class Builder:
         fs = np.asarray(f_list)
         ts = np.asarray(t_list)
         rs = np.asarray(r_list)
-        results = np.array([fs, ts, rs])
+        low = self.sweep_params['low']
+        high = self.sweep_params['high']
+        res = self.sweep_params['res']
+        units = self.sweep_params['units']
+#        results = np.array([fs, ts, rs])
+        results = {}
+        results['output'] = {'freqs':fs, 'T':ts, 'R':rs}
+        results['input']= {'f_low':low, 'f_high':high, 'f_res':res, 'f_units':units}
         t = time.ctime(time.time())
         data_name = self._make_save_path(self.save_path, self.save_name)
         columns = 'Frequency (Hz)\t\tTransmission amplitude\t\tReflection amplitude'
         with open(data_name, 'wb') as f:
-            low = self.sweep_params['low']
-            high = self.sweep_params['high']
-            res = self.sweep_params['res']
-            units = self.sweep_params['units']
+#             low = self.sweep_params['low']
+#             high = self.sweep_params['high']
+#             res = self.sweep_params['res']
+#             units = self.sweep_params['units']
             f.write('# Frequency sweep information\n')
             f.write('# low: {}, high: {}, res: {}, units: {}\n'.format(low, high, res, units))
             f.write('#\n')
