@@ -1,17 +1,14 @@
-"""Simulator contains the tools needed to set up a multilayer antireflection coating
-simulation.
+"""
+Simulator contains the tools needed to set up a multilayer antireflection
+coating simulation.
 
 Based on transfer matrix method outlined in Hou, H.S. 1974.
 """
 
-# Author: Andrew Nadolski (with lots of help from previous work by Colin Merkel, Steve Byrnes, and Aritoki Suzuki)
+# Author: Andrew Nadolski (with lots of help from previous work by Colin Merkel,
+#         Steve Byrnes, and Aritoki Suzuki)
 # Filename: simulator.py
 
-"""
-###### TODO ######
-
-8/2 - Go through all doctrings and make sure they're right
-"""
 
 import glob
 import os
@@ -781,7 +778,7 @@ class Builder:
         print('Elapsed time: {t}s\n'.format(t=t_elapsed))
         return results
 
-    def set_freq_sweep(self, lower_bound, upper_bound, resolution=1):
+    def set_freq_sweep(self, lower_bound, upper_bound, resolution=1, units='ghz'):
         """Set the frequency range over which the simulation will run.
         
         Arguments
@@ -793,9 +790,16 @@ class Builder:
         reolution : float, optional
             The interval at which to sample the frequency range, given in GHz.
             Defaults to 1 GHz.
+        units : str
+            The units of frequency. Must be one of:
+            Hz, hz, KHz, khz, MHz, mhz, GHz, ghz
         """
-        self.freq_sweep = np.linspace(lower_bound*1e9, upper_bound*1e9, \
-                                          (upper_bound-lower_bound)/resolution)
+        convert = {'Hz':1.0, 'hz':1.0, 'KHz':1e3, 'khz':1e3, 'MHz':1e6,
+                   'mhz':1e6, 'GHz':1e9, 'ghz':1e9}
+        low = lower_bound*convert[units]
+        high = upper_bound*convert[units]
+        samples = (high-low)/resolution
+        self.freq_sweep = np.linspace(low, high, samples)
         return
 
 #     def set_source_layer(self, material):
