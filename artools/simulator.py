@@ -178,8 +178,9 @@ class Builder:
         Defaults is `None`.
     """
     def __init__(self):
+        self.angle_sweep = None
         self.bands = [(81.7e9, 107.5e9),(128.6e9, 167.2e9),(196.9e9, 249.2e9)]
-        self.freq_sweep = 0.
+        self.freq_sweep = None
         self.optimization_frequency = 160e9        # given in Hz, i.e. 160 GHz
         self.save_name = 'transmission_data_{t}.txt'.format(t=time.ctime(time.time()))
         self.save_path = '.'
@@ -750,52 +751,88 @@ class Builder:
         print('Beginning AR coating simulation')
         self._d_converter()
         self._interconnect()
-        f_list = []
-        t_list = []
-        r_list = []
-        for f in self.freq_sweep:
-            results = self.sim_single_freq(f)
-            f_list.append(f)
-            t_list.append(results['T'])
-            r_list.append(results['R'])
-        fs = np.asarray(f_list)
-        ts = np.asarray(t_list)
-        rs = np.asarray(r_list)
-        low = self.sweep_params['low']
-        high = self.sweep_params['high']
-        res = self.sweep_params['res']
-        units = self.sweep_params['units']
-#        results = np.array([fs, ts, rs])
-        results = {}
-        results['output'] = {'freqs':fs, 'T':ts, 'R':rs}
-        results['input']= {'f_low':low, 'f_high':high, 'f_res':res, 'f_units':units}
-        t = time.ctime(time.time())
-        data_name = self._make_save_path(self.save_path, self.save_name)
-        columns = 'Frequency (Hz)\t\tTransmission amplitude\t\tReflection amplitude'
-        with open(data_name, 'wb') as f:
-#             low = self.sweep_params['low']
-#             high = self.sweep_params['high']
-#             res = self.sweep_params['res']
-#             units = self.sweep_params['units']
-            f.write('# Frequency sweep information\n')
-            f.write('# low: {}, high: {}, res: {}, units: {}\n'.format(low, high, res, units))
-            f.write('#\n')
-            f.write('# Layer information\n')
-            for layer in self.structure:
-                name = layer.name
-                t = layer.thickness
-                eps = layer.dielectric
-                loss = layer.losstangent
-                type = layer.type
-                f.write('# name: {}, thickness: {}, dielectric: {}, loss: {}, type: {}\n'\
-                            .format(name, t, eps, loss, type))
-            f.write('#\n')
-            np.savetxt(f, np.c_[fs, ts, rs], delimiter='\t', header=columns)
-        print('Finished running AR coating simulation')
-        t1 = time.time()
-        t_elapsed = t1-t0
-        print('Elapsed time: {t}s\n'.format(t=t_elapsed))
-        return results
+        if not self.angle_sweep:
+            f_list = []
+            t_list = []
+            r_list = []
+            for f in self.freq_sweep:
+                results = self.sim_single_freq(f)
+                f_list.append(f)
+                t_list.append(results['T'])
+                r_list.append(results['R'])
+            fs = np.asarray(f_list)
+            ts = np.asarray(t_list)
+            rs = np.asarray(r_list)
+            low = self.sweep_params['low']
+            high = self.sweep_params['high']
+            res = self.sweep_params['res']
+            units = self.sweep_params['units']
+            results = {}
+            results['output'] = {'freqs':fs, 'T':ts, 'R':rs}
+            results['input']= {'f_low':low, 'f_high':high, 'f_res':res, 'f_units':units}
+            t = time.ctime(time.time())
+            data_name = self._make_save_path(self.save_path, self.save_name)
+            columns = 'Frequency (Hz)\t\tTransmission amplitude\t\tReflection amplitude'
+            with open(data_name, 'wb') as f:
+                f.write('# Frequency sweep information\n')
+                f.write('# low: {}, high: {}, res: {}, units: {}\n'.format(low, high, res, units))
+                f.write('#\n')
+                f.write('# Layer information\n')
+                for layer in self.structure:
+                    name = layer.name
+                    t = layer.thickness
+                    eps = layer.dielectric
+                    loss = layer.losstangent
+                    type = layer.type
+                    f.write('# name: {}, thickness: {}, dielectric: {}, loss: {}, type: {}\n'\
+                                .format(name, t, eps, loss, type))
+                f.write('#\n')
+                np.savetxt(f, np.c_[fs, ts, rs], delimiter='\t', header=columns)
+            print('Finished running AR coating simulation')
+            t1 = time.time()
+            t_elapsed = t1-t0
+            print('Elapsed time: {t}s\n'.format(t=t_elapsed))
+            return results
+        else:
+            for angle in self.angle_sweep:
+                pass
+
+    def set_angle_sweep(self, theta_min, theta_max, res=1., units='deg'):
+        """Set the range of incident angles over which to run the simulation. 
+        If you only want a single, non-normal incident angle, then set the same
+        value for both theta_min and theta_max. The angle theta is defined as
+        the deviation from normal incidence.
+
+        The simulator will always include the results of normal incidence.
+        Additional angles will be stored and recorded SOMEHOW.
+
+        Arguments
+        ---------
+        theta_min : float
+            The lower bound of the angle sweep. Must be greater than or equal
+            to zero.
+        theta_max : float
+            The upper bound of the angle sweep. Must be less than or equal to
+            90 degrees, or pi/2 radians.
+        res : float, optional
+            The resolution of the sweep. Default is 1.
+        units : string, optional
+            The units of the angle. Must be either 'deg' or 'rad'. Default is
+            'rad'.
+        """
+        min = theta_min
+        max = theta_max
+        res = res
+        if units == 'rad':
+            min = (180./np.pi)*min
+            max = (180./np.pi)*max
+            res = (180./np.pi)*res
+        samples = (max-min)/res
+        if samples == 0:
+            self.angle_sweep = np.array([0., min])
+            return
+        self.angle_sweep = np.linspace(min, max, samples)
+        return
 
     def set_freq_sweep(self, lower_bound, upper_bound, resolution=1, units='ghz'):
         """Set the frequency range over which the simulation will run.
@@ -900,17 +937,17 @@ class Builder:
         return result
 
     def snell(self, indices, theta_0):
-        """Caclulate the Snell angles for the entire model.
+        """Calculate the refraction angles for the entire model.
 
         Arguments
         ---------
-        indices : list
-            The list of indices of refraction for all elements in the model,
+        indices : array
+            The array of indices of refraction for all elements in the model,
             ordered from source to terminator.
         theta_0 : float
             The angle of incidence at the first interface.
         """
-        return sp.arcsin(np.real_if_close(n_list[0]*np.sin(th_0) / n_list))
+        return sp.arcsin(np.real_if_close(indices[0]*np.sin(theta_0)/indices))
 
 # class MCMC:
 #     """Contains the methods specific to ``emcee``, the MCMC Hammer, and helper
