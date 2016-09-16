@@ -25,14 +25,18 @@ Getting artools:
 There are three ways to install artools:
 
 1. pip
-   `pip install artools`
+
+    `pip install artools`
 
 2. Anaconda
-   `conda install --channel https://conda.anaconda.org/anadolski artools`
+
+    `conda install --channel https://conda.anaconda.org/anadolski artools`
 
 3. python
-   Download the repository and run:
-   `python setup.py install`
+
+    Download the repository and run:
+
+    `python setup.py install`
 
 You have to have matplotlib, numpy, and scipy installed before this program will work (see the "Dependencies" section above). If you use the Anaconda package manager, then all these packages are already installed. If you don't use Anaconda, then you may have to search them out on your own.
 
