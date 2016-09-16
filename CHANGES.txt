@@ -1,0 +1,12 @@
+v0.1.1b
+9/15/16
+Add an example script and directory.
+Make some changes to documentation.
+Hopefully didn't break anything.
+
+v0.1.1a
+9/15/16
+Add a new dependency to setup.py
+
+v0.1.1
+Add the first iteration of artools to PyPI
