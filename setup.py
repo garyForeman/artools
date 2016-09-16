@@ -5,7 +5,7 @@ setup(
     name = "artools",
 
     # Version number:
-    version = "0.1.1b",
+    version = "0.1.3",
 
     # Application author details:
     author = "Andrew Nadolski",
@@ -19,12 +19,12 @@ setup(
 
     # Details:
     url = "https://github.com/anadolsk1/artools",
-
+    download_url = "https://github.com/anadolsk1/artools/archive/v0.1.3-alpha.tar.gz",
     # License:
     license = "LICENSE.txt",
 
     # Description:
-    description = "Placeholder description. See README?",
+    description = "A simple anti-reflection coating simulator.",
 
     # Dependencies:
     install_requires = [
