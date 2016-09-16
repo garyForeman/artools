@@ -58,7 +58,7 @@ After the simulation runs you will be left with a columnized, tab-separated, tex
 
 Examples:
 ---------
-I'll make a folder for example scripts. Some day.
+See 'artools/examples' for details.
 
 TODO:
 -----
