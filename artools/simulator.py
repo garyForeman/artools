@@ -180,13 +180,13 @@ class Builder:
     def __init__(self):
         self.bands = [(81.7e9, 107.5e9),(128.6e9, 167.2e9),(196.9e9, 249.2e9)]
         self.freq_sweep = 0.
-        self.log_name = 'log_simulation_{t}.txt'.format(t=time.ctime(time.time()))
         self.optimization_frequency = 160e9        # given in Hz, i.e. 160 GHz
         self.save_name = 'transmission_data_{t}.txt'.format(t=time.ctime(time.time()))
         self.save_path = '.'
         self.source = None
         self.stack = []
         self.structure = []
+        self.sweep_params = {'low':'unset', 'high':'unset', 'res':'unset', 'units':'unset'}
         self.terminator = None
 
     def _calc_R_T_amp(self, polarization, n, delta):
@@ -764,15 +764,26 @@ class Builder:
         results = np.array([fs, ts, rs])
         t = time.ctime(time.time())
         data_name = self._make_save_path(self.save_path, self.save_name)
-        header = 'Frequency (Hz)\t\tTransmission amplitude\t\tReflection amplitude'
-#         log_name = self._make_save_path(self.save_path, self.log_name)
-#         log = self._make_log()
+        columns = 'Frequency (Hz)\t\tTransmission amplitude\t\tReflection amplitude'
         with open(data_name, 'wb') as f:
-            np.savetxt(f, np.c_[fs, ts, rs], delimiter='\t', header=header)
-#         with open(log_name, 'wb') as f:
-#             for line in log:
-#                 f.writelines(line)
-#                 f.write('\n')
+            low = self.sweep_params['low']
+            high = self.sweep_params['high']
+            res = self.sweep_params['res']
+            units = self.sweep_params['units']
+            f.write('# Frequency sweep information\n')
+            f.write('# low: {}, high: {}, res: {}, units: {}\n'.format(low, high, res, units))
+            f.write('#\n')
+            f.write('# Layer information\n')
+            for layer in self.structure:
+                name = layer.name
+                t = layer.thickness
+                eps = layer.dielectric
+                loss = layer.losstangent
+                type = layer.type
+                f.write('# name: {}, thickness: {}, dielectric: {}, loss: {}, type: {}\n'\
+                            .format(name, t, eps, loss, type))
+            f.write('#\n')
+            np.savetxt(f, np.c_[fs, ts, rs], delimiter='\t', header=columns)
         print('Finished running AR coating simulation')
         t1 = time.time()
         t_elapsed = t1-t0
@@ -791,7 +802,7 @@ class Builder:
         reolution : float, optional
             The interval at which to sample the frequency range, given in GHz.
             Defaults to 1 GHz.
-        units : str
+        units : string
             The units of frequency. Must be one of:
             Hz, hz, KHz, khz, MHz, mhz, GHz, ghz
         """
@@ -799,8 +810,12 @@ class Builder:
                    'mhz':1e6, 'GHz':1e9, 'ghz':1e9}
         low = lower_bound*convert[units]
         high = upper_bound*convert[units]
-        samples = (high-low)/resolution
+        samples = (high-low)/(resolution*convert[units])
         self.freq_sweep = np.linspace(low, high, samples)
+        self.sweep_params['low'] = lower_bound
+        self.sweep_params['high'] = upper_bound
+        self.sweep_params['res'] = resolution
+        self.sweep_params['units'] = units
         return
 
 #     def set_source_layer(self, material):
