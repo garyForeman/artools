@@ -1,0 +1,5 @@
+* update docstrings
+* include bandpass statistics in run_sim() output file
+* inclide dielectric loss as a primary run_sim() output (like 'T', 'R', and "Frequency')
+* include handling off-normal angles of incidence
+* double-check bandpass plotting. it's probably broken :(
