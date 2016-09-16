@@ -5,7 +5,7 @@ setup(
     name = "artools",
 
     # Version number:
-    version = "0.1.1a",
+    version = "0.1.1b",
 
     # Application author details:
     author = "Andrew Nadolski",
