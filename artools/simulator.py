@@ -339,8 +339,8 @@ class Builder:
         stack. Convert the lengths of the layers to meters if they are
         not already in meters.
         """
-        units = {'um':1e-6, 'mm':1e-3, 'inch':2.54e-2, 'in':2.54e-2,\
-                     'micron':1e-6, 'mil':2.54e-5, 'm':1.0}
+        units = {'um':1e-6, 'mm':1e-3, 'inch':2.54e-2, 'in':2.54e-2,
+                 'micron':1e-6, 'mil':2.54e-5, 'm':1.0}
         for i in self.stack:
             i.thickness = i.thickness*units[i.units]
         return
@@ -367,7 +367,8 @@ class Builder:
             The complex wavenumber, k
         """
         if lossy:
-            k = 2*np.pi*n*frequency*(1+0.5j*tan)/3e8 # New expression for loss (as of 9/13/16), this one is more physical (i.e. subtractive)
+            k = 2*np.pi*n*frequency*(1+0.5j*tan)/3e8 # New expression for loss (9/13/16)
+                                                     # this one is more...subtractive
 #             k = 2*np.pi*n*frequency*(1-0.5j*tan)/3e8 # Original expression for loss (pre 9/13/16), but it is incorrectly ADDITIVE
         else:
             k = 2*np.pi*n*frequency/3e8
@@ -889,66 +890,66 @@ class Builder:
         """
         return sp.arcsin(np.real_if_close(n_list[0]*np.sin(th_0) / n_list))
 
-class MCMC:
-    """Contains the methods specific to ``emcee``, the MCMC Hammer, and helper
-    methods to set up MCMC simulations and visualize the results.
-    """
-    def __init__(self):
-        self.name = 'blah'
-        self.priors = []
+# class MCMC:
+#     """Contains the methods specific to ``emcee``, the MCMC Hammer, and helper
+#     methods to set up MCMC simulations and visualize the results.
+#     """
+#     def __init__(self):
+#         self.name = 'blah'
+#         self.priors = []
 
-    def __repr__(self):
-        return '{} (MCMC object)'.format(self.name)
+#     def __repr__(self):
+#         return '{} (MCMC object)'.format(self.name)
 
-    def add_prior(self, layer_number, prior_type, low_bound, hi_bound, units='mil'):
-        """Add a prior to a part of the model in order to constrain the total
-        simulation space. Can only place constraints on thickness and dielectric
-        for now.
+#     def add_prior(self, layer_number, prior_type, low_bound, hi_bound, units='mil'):
+#         """Add a prior to a part of the model in order to constrain the total
+#         simulation space. Can only place constraints on thickness and dielectric
+#         for now.
 
-        Arguments
-        ---------
-        layer_number : int
-            The position of the layer in the AR coating stack. Indexed from 1, so
-            incident `vacuum` is 0 and first AR coating layer is 1.
-        prior_type : string
-            Flags the prior as either a cut to dielectric constant or thickness.
-            One of 'thickness', 't', 'dielectric', or 'd'.
-        low_bound : float
-            The lower boundary of the range.
-        hi_bound : float
-            The higher boundary of the range.
-        units : string, optional
-            The units of the lower and upper bounds. Only applies to 'thickness'
-            cuts because dielectric constants are unitless. Defaults to `mils`.
-        """
-        prior = {'layer_number':layer_number, 'prior_type':prior_type, \
-                     'low_bound':low_bound, 'hi_bound':hi_bound, 'units':units}
-        self.priors.append(prior)
-        return
+#         Arguments
+#         ---------
+#         layer_number : int
+#             The position of the layer in the AR coating stack. Indexed from 1, so
+#             incident `vacuum` is 0 and first AR coating layer is 1.
+#         prior_type : string
+#             Flags the prior as either a cut to dielectric constant or thickness.
+#             One of 'thickness', 't', 'dielectric', or 'd'.
+#         low_bound : float
+#             The lower boundary of the range.
+#         hi_bound : float
+#             The higher boundary of the range.
+#         units : string, optional
+#             The units of the lower and upper bounds. Only applies to 'thickness'
+#             cuts because dielectric constants are unitless. Defaults to `mils`.
+#         """
+#         prior = {'layer_number':layer_number, 'prior_type':prior_type, \
+#                      'low_bound':low_bound, 'hi_bound':hi_bound, 'units':units}
+#         self.priors.append(prior)
+#         return
 
-    def lnlikelihood(self):
-        return
+#     def lnlikelihood(self):
+#         return
 
-    def lnprior(self):
-        """Define the known prior attributes of the model in order to constrain
-        the simulation space.
-        """
+#     def lnprior(self):
+#         """Define the known prior attributes of the model in order to constrain
+#         the simulation space.
+#         """
         
-        return
+#         return
 
-    def lnprobability(self):
-        """The logspace sum of ``lnprior`` and ``lnlikelihood``.
-        """
-        return
+#     def lnprobability(self):
+#         """The logspace sum of ``lnprior`` and ``lnlikelihood``.
+#         """
+#         return
 
-    def sort_priors(self):
-        """Sort the contents of ``self.prior`` by layer number
+#     def sort_priors(self):
+#         """Sort the contents of ``self.prior`` by layer number
         
-        Returns
-        -------
-        sorted_priors : list
-            A list of priors sorted by layer number. If a layer has both
-            thickness and dielectric priors, the thickness dielectric is first
-            and the dielectric is second.
-        """
-        return
+#         Returns
+#         -------
+#         sorted_priors : list
+#             A list of priors sorted by layer number. If a layer has both
+#             thickness and dielectric priors, the thickness dielectric is first
+#             and the dielectric is second.
+#         """
+#         return
