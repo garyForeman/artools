@@ -5,7 +5,7 @@ setup(
     name = "artools",
 
     # Version number:
-    version = "0.1.1",
+    version = "0.1.1a",
 
     # Application author details:
     author = "Andrew Nadolski",
@@ -30,5 +30,6 @@ setup(
     install_requires = [
         "numpy",
         "matplotlib",
+        "scipy",
     ],
 )

@@ -1,0 +1,5 @@
+v0.1.1a
+Add a new dependency to setup.py
+
+v0.1.1
+Add the first iteration of artools to PyPI
