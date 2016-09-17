@@ -1,5 +1,6 @@
 * update docstrings
   	 * definitely check set_angle_sweep() docstring. it is snarky.
+* fix get_bandpass_statistics() in simulator.py
 * include bandpass statistics in run_sim() output file
 * inclide dielectric loss as a primary run_sim() output (like 'T', 'R', and "Frequency')
 * include handling off-normal angles of incidence
