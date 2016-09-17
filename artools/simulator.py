@@ -182,6 +182,7 @@ class Builder:
         self.bands = [(81.7e9, 107.5e9),(128.6e9, 167.2e9),(196.9e9, 249.2e9)]
         self.freq_sweep = None
         self.optimization_frequency = 160e9        # given in Hz, i.e. 160 GHz
+        self.polarization = 's'
         self.save_name = 'transmission_data_{t}.txt'.format(t=time.ctime(time.time()))
         self.save_path = '.'
         self.source = None
@@ -190,7 +191,7 @@ class Builder:
         self.sweep_params = {'low':'unset', 'high':'unset', 'res':'unset', 'units':'unset'}
         self.terminator = None
 
-    def _calc_R_T_amp(self, polarization, n, delta):
+    def _calc_R_T_amp(self, polarization, n, delta, theta):
         """Calculate the reflected and transmitted amplitudes
 
         Arguments
@@ -222,8 +223,8 @@ class Builder:
 #                 print("{}{} {}".format(i,j,t_amp[i][j]))
 
         for i in range(len(self.structure)-1):
-            t_amp[i,i+1] = self._t_at_interface(polarization, n[i], n[i+1])
-            r_amp[i,i+1] = self._r_at_interface(polarization, n[i], n[i+1])
+            t_amp[i,i+1] = self._t_at_interface(polarization, n[i], n[i+1], theta[i], theta[i+1])
+            r_amp[i,i+1] = self._r_at_interface(polarization, n[i], n[i+1], theta[i], theta[i+1])
 #         # debugging statement
 #         print("\nmod r_amp is:")
 #         for i in range(len(self.structure)):
@@ -346,7 +347,7 @@ class Builder:
             i.thickness = i.thickness*units[i.units]
         return
         
-    def _find_ks(self, n, frequency, tan, lossy=True):
+    def _find_ks(self, n, frequency, tan, theta, lossy=True):
         """Calculate the wavenumbers.
 
         Arguments
@@ -368,7 +369,7 @@ class Builder:
             The complex wavenumber, k
         """
         if lossy:
-            k = 2*np.pi*n*frequency*(1+0.5j*tan)/3e8 # New expression for loss (9/13/16)
+            k = 2*np.pi*n*frequency*np.cos(theta)*(1+0.5j*tan)/3e8 # New expression for loss (9/13/16)
                                                      # this one is more...subtractive
 #             k = 2*np.pi*n*frequency*(1-0.5j*tan)/3e8 # Original expression for loss (pre 9/13/16), but it is incorrectly ADDITIVE
         else:
@@ -406,7 +407,7 @@ class Builder:
         """
         return np.abs(net_r_amp)**2
 
-    def _get_T(self, polarization, net_t_amp, n_i, n_f, theta_i=0., theta_f=0.):
+    def _get_T(self, net_t_amp, n_i, n_f, theta_i, theta_f):
         """Return the fraction of transmitted power.
 
         Arguments
@@ -424,12 +425,11 @@ class Builder:
         theta_f : float, optional
             The angle of incidence at interface 'f'. Default is 0.
         """
-        if (polarization=='s'):
-            return np.abs(net_t_amp**2) * (n_f/n_i)
-        elif (polarization=='p'):
-            return np.abs(net_t_amp**2) * (n_f/n_i)
-        else:
-            raise ValueError("Polarization must be 's' or 'p'")
+        return np.abs(net_t_amp**2)*(n_f*np.cos(theta_f)/n_i*np.cos(theta_i))
+        #elif (polarization=='p'):
+        #    return np.abs(net_t_amp**2) * (n_f/n_i)
+        #else:
+        #    raise ValueError("Polarization must be 's' or 'p'")
 
     def _get_bandpass_stats(self):
         mean = []
@@ -471,9 +471,6 @@ class Builder:
         array[1,1] = A22
         return array
 
-    def _make_log(self):
-        pass
-
     def _make_save_path(self, save_path, save_name):
         """Assemble the file name and path to the results file.
         
@@ -489,16 +486,16 @@ class Builder:
             path = os.path.join(save_path, save_name)
         return path
 
-    def _r_at_interface(self, polarization, n_1, n_2):
+    def _r_at_interface(self, polarization, n1, n2, theta1, theta2):
         """Calculate the reflected amplitude at an interface.
 
         Arguments
         ---------
         polarization : string
             The polarization of the source wave. Must be one of: 's' or 'p'.
-        n_1 : float
+        n1 : float
             The index of refraction of the first material.
-        n_2 : float
+        n2 : float
             The index of refraction of the second material.
 
         Returns
@@ -507,9 +504,13 @@ class Builder:
             The amplitude of the reflected power
         """
         if polarization == 's':
-            return ((n_1-n_2)/(n_1+n_2))
+            s_numerator = (n1*np.cos(theta1)-n2*np.cos(theta2))
+            s_denominator = (n1*np.cos(theta1)+n2*np.cos(theta2))
+            return s_numerator/s_denominator
         elif polarization == 'p':
-            return ((n_1-n_2)/(n_1+n_2))
+            p_numerator = (n2*np.cos(theta1)-n1*np.cos(theta2))
+            p_denominator = (n1*np.cos(theta2)+n2*np.cos(theta1))
+            return p_numerator/p_denominator
         else:
             raise ValueError("Polarization must be 's' or 'p'")
 
@@ -558,16 +559,16 @@ class Builder:
         tan = np.asarray(tan)
         return tan
 
-    def _t_at_interface(self, polarization, n_1, n_2):
+    def _t_at_interface(self, polarization, n1, n2, theta1, theta2):
         """Calculate the transmission amplitude at an interface.
 
         Arguments
         ---------
         polarization : string
             The polarization of the source wave. Must be one of: 's' or 'p'.
-        n_1 : float
+        n1 : float
             The index of refraction of the first material.
-        n_2 : float
+        n2 : float
             The index of refraction of the second material.
 
         Returns
@@ -576,9 +577,13 @@ class Builder:
             The amplitude of the transmitted power
         """
         if polarization == 's':
-            return 2*n_1/(n_1 + n_2)
+            s_numerator = 2*n1*np.cos(theta1)
+            s_denominator = (n1*np.cos(theta1)+n2*np.cos(theta2))
+            return s_numerator/s_denominator
         elif polarization == 'p':
-            return 2*n_1/(n_1 + n_2)
+            p_numerator = 2*n1*np.cos(theta1)
+            p_denominator = (n1*np.cos(theta2)+n2*np.cos(theta1))
+            return p_numerator/p_denominator
         else:
             raise ValueError("Polarization must be 's' or 'p'")
 
@@ -627,7 +632,6 @@ class Builder:
             from 0. Default is -1 (i.e., layer is automatically added
             to the end (bottom?) of the stack.
         """
-
         type = type.lower()
         if type == 'layer':
             layer = Layer()
@@ -635,12 +639,10 @@ class Builder:
             layer.thickness = thickness
             layer.units = units
             try:
-#                 layer.dielectric = mats.Electrical.DIELECTRIC[layer.name]
                 layer.dielectric = mats.Electrical.props[layer.name][0]
             except:
                 raise KeyError('I don\'t know that material!')
             try:
-#                 layer.losstangent = mats.Electrical.LOSS_TAN[layer.name]
                 layer.losstangent = mats.Electrical.props[layer.name][1]
             except:
                 layer.losstangent = 0
@@ -653,12 +655,10 @@ class Builder:
             self.source = SourceLayer()
             self.source.name = material.lower()
             try:
-#                 self.source.dielectric = mats.Electrical.DIELECTRIC[self.source.name]
                 self.source.dielectric = mats.Electrical.props[self.source.name][0]
             except:
                 raise KeyError('I don\'t know that material!')
             try:
-#                 self.source.losstangent = mats.Electrical.LOSS_TAN[self.source.name]
                 self.source.losstangent = mats.Electrical.props[self.source.name][1]
             except:
                 self.source.losstangent = 0
@@ -667,12 +667,10 @@ class Builder:
             self.terminator = TerminatorLayer()
             self.terminator.name = material.lower()
             try:
-#                 self.terminator.dielectric = mats.Electrical.DIELECTRIC[self.terminator.name]
                 self.terminator.dielectric = mats.Electrical.props[self.terminator.name][0]
             except:
                 raise KeyError('I don\'t know that material!')
             try:
-#                 self.terminator.losstangent = mats.Electrical.LOSS_TAN[self.terminator.name]
                 self.terminator.losstangent = mats.Electrical.props[self.terminator.name][1]
             except:
                 self.terminator.losstangent = 0
@@ -751,12 +749,12 @@ class Builder:
         print('Beginning AR coating simulation')
         self._d_converter()
         self._interconnect()
-        if not self.angle_sweep:
-            f_list = []
-            t_list = []
-            r_list = []
+        f_list = []
+        t_list = []
+        r_list = []
+        if len(self.angle_sweep) < 2:
             for f in self.freq_sweep:
-                results = self.sim_single_freq(f)
+                results = self.sim_single_freq(f, theta_0=0, pol=self.polarization)
                 f_list.append(f)
                 t_list.append(results['T'])
                 r_list.append(results['R'])
@@ -775,7 +773,7 @@ class Builder:
             columns = 'Frequency (Hz)\t\tTransmission amplitude\t\tReflection amplitude'
             with open(data_name, 'wb') as f:
                 f.write('# Frequency sweep information\n')
-                f.write('# low: {}, high: {}, res: {}, units: {}\n'.format(low, high, res, units))
+                f.write('# low: {}, high: {}, res: {}, units: {}, polarization: {}\n'.format(low, high, res, units, self.polarization))
                 f.write('#\n')
                 f.write('# Layer information\n')
                 for layer in self.structure:
@@ -795,7 +793,47 @@ class Builder:
             return results
         else:
             for angle in self.angle_sweep:
-                pass
+                f_list = []
+                t_list = []
+                r_list = []
+                for f in self.freq_sweep:
+                    results = self.sim_single_freq(f, theta_0=angle, pol=self.polarization)
+                    f_list.append(f)
+                    t_list.append(results['T'])
+                    r_list.append(results['R'])
+                    fs = np.asarray(f_list)
+                    ts = np.asarray(t_list)
+                    rs = np.asarray(r_list)
+                    low = self.sweep_params['low']
+                    high = self.sweep_params['high']
+                    res = self.sweep_params['res']
+                    units = self.sweep_params['units']
+                    results = {}
+                    results['output'] = {'freqs':fs, 'T':ts, 'R':rs}
+                    results['input']= {'f_low':low, 'f_high':high, 'f_res':res, 'f_units':units}
+                    t = time.ctime(time.time())
+                    data_name = self._make_save_path(self.save_path, self.save_name+'_theta{}.txt'.format(angle))
+                    columns = 'Frequency (Hz)\t\tTransmission amplitude\t\tReflection amplitude'
+                    with open(data_name, 'wb') as f:
+                        f.write('# Frequency sweep information\n')
+                        f.write('# low: {}, high: {}, res: {}, units: {}\n'.format(low, high, res, units))
+                        f.write('#\n')
+                        f.write('# Layer information\n')
+                        for layer in self.structure:
+                            name = layer.name
+                            t = layer.thickness
+                            eps = layer.dielectric
+                            loss = layer.losstangent
+                            type = layer.type
+                            f.write('# name: {}, thickness: {}, dielectric: {}, loss: {}, type: {}\n'\
+                                        .format(name, t, eps, loss, type))
+                            f.write('#\n')
+                            np.savetxt(f, np.c_[fs, ts, rs], delimiter='\t', header=columns)
+                    print('Finished running AR coating simulation')
+                    t1 = time.time()
+                    t_elapsed = t1-t0
+                    print('Elapsed time: {t}s\n'.format(t=t_elapsed))
+                    return results
 
     def set_angle_sweep(self, theta_min, theta_max, res=1., units='deg'):
         """Set the range of incident angles over which to run the simulation. 
@@ -823,10 +861,10 @@ class Builder:
         min = theta_min
         max = theta_max
         res = res
-        if units == 'rad':
-            min = (180./np.pi)*min
-            max = (180./np.pi)*max
-            res = (180./np.pi)*res
+        if units == 'deg':
+            min = (np.pi/180.)*min
+            max = (np.pi/180.)*max
+            res = (np.pi/180.)*res
         samples = (max-min)/res
         if samples == 0:
             self.angle_sweep = np.array([0., min])
@@ -862,28 +900,6 @@ class Builder:
         self.sweep_params['units'] = units
         return
 
-#     def set_source_layer(self, material):
-#         """Change the source layer.
-
-#         Arguments
-#         ---------
-#         material : string
-#             A key in the dielectrics dictionary.
-#         """
-#         self.source = SourceLayer(material)
-#         return
-
-#     def set_terminator_layer(self, material):
-#         """Change the terminator layer.
-
-#         Arguments
-#         ---------
-#         material : string
-#             A key in the dielectrics dictionary.
-#         """
-#         self.terminator = TerminatorLayer(material)
-#         return
-
     def show_materials(self):
         """List the materials with known properties. The listed material names 
         are keys in the materials properties dictionary. 
@@ -896,14 +912,14 @@ class Builder:
 #         pprint.pprint(mats.Electrical.LOSS_TAN)
         return
 
-    def sim_single_freq(self, frequency, polarization='s', theta_0=0):
+    def sim_single_freq(self, frequency, theta_0, pol='s'):
         """Run the model simulation for a single frequency.
 
         Arguments
         ---------
         frequency : float
             The frequency at which to evaluate the model (in Hz).
-        polarization : string, optional
+        pol : string, optional
             The polarization of the source wave. Must be one of: 's', 
             'p', or 'u'. Default is 's'.
             
@@ -928,10 +944,11 @@ class Builder:
         n = self._sort_ns()                                 # get all refractive indices
         d = self._sort_ds()                                 # get all thicknesses
         tan = self._sort_tans()                             # get all loss tans
-        k = self._find_ks(n, frequency, tan)                # find all wavevectors, k
+        theta = self.snell(n, theta_0)
+        k = self._find_ks(n, frequency, tan, theta)                # find all wavevectors, k
         delta = self._find_k_offsets(k, d)                  # calculate all offsets
-        r, t = self._calc_R_T_amp(polarization, n, delta)   # get trans, ref amps
-        T = self._get_T(polarization, t, n[0], n[-1])       # find net trans, ref power
+        r, t = self._calc_R_T_amp(pol, n, delta, theta)   # get trans, ref amps
+        T = self._get_T(t, n[0], n[-1], theta[0], theta[-1])       # find net trans, ref power
         R = self._get_R(r)
         result = {'T':T, 'R':R}
         return result
@@ -947,7 +964,11 @@ class Builder:
         theta_0 : float
             The angle of incidence at the first interface.
         """
-        return sp.arcsin(np.real_if_close(indices[0]*np.sin(theta_0)/indices))
+        theta = [theta_0]
+        for i in range(len(indices)-1):
+            angle = sp.arcsin(np.real_if_close(indices[i]*np.sin(theta[i])/indices[i+1]))
+            theta.append(angle)
+        return theta
 
 # class MCMC:
 #     """Contains the methods specific to ``emcee``, the MCMC Hammer, and helper
