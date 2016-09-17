@@ -5,3 +5,5 @@
 * inclide dielectric loss as a primary run_sim() output (like 'T', 'R', and "Frequency')
 * include handling off-normal angles of incidence
 * double-check bandpass plotting. it's probably broken :(
+* fix logging for theta sweeps
+* fix results return for theta sweeps. right now quick plotting is broken bc plotter.load_data() doesn't get any meaningful input
