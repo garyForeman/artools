@@ -749,10 +749,10 @@ class Builder:
         print('Beginning AR coating simulation')
         self._d_converter()
         self._interconnect()
-        f_list = []
-        t_list = []
-        r_list = []
         if len(self.angle_sweep) < 2:
+            f_list = []
+            t_list = []
+            r_list = []
             for f in self.freq_sweep:
                 results = self.sim_single_freq(f, theta_0=0, pol=self.polarization)
                 f_list.append(f)
@@ -793,6 +793,7 @@ class Builder:
             return results
         else:
             for angle in self.angle_sweep:
+                print angle
                 f_list = []
                 t_list = []
                 r_list = []
@@ -801,39 +802,39 @@ class Builder:
                     f_list.append(f)
                     t_list.append(results['T'])
                     r_list.append(results['R'])
-                    fs = np.asarray(f_list)
-                    ts = np.asarray(t_list)
-                    rs = np.asarray(r_list)
-                    low = self.sweep_params['low']
-                    high = self.sweep_params['high']
-                    res = self.sweep_params['res']
-                    units = self.sweep_params['units']
-                    results = {}
-                    results['output'] = {'freqs':fs, 'T':ts, 'R':rs}
-                    results['input']= {'f_low':low, 'f_high':high, 'f_res':res, 'f_units':units}
-                    t = time.ctime(time.time())
-                    data_name = self._make_save_path(self.save_path, self.save_name+'_theta{}.txt'.format(angle))
-                    columns = 'Frequency (Hz)\t\tTransmission amplitude\t\tReflection amplitude'
-                    with open(data_name, 'wb') as f:
-                        f.write('# Frequency sweep information\n')
-                        f.write('# low: {}, high: {}, res: {}, units: {}\n'.format(low, high, res, units))
-                        f.write('#\n')
-                        f.write('# Layer information\n')
-                        for layer in self.structure:
-                            name = layer.name
-                            t = layer.thickness
-                            eps = layer.dielectric
-                            loss = layer.losstangent
-                            type = layer.type
-                            f.write('# name: {}, thickness: {}, dielectric: {}, loss: {}, type: {}\n'\
-                                        .format(name, t, eps, loss, type))
-                            f.write('#\n')
-                            np.savetxt(f, np.c_[fs, ts, rs], delimiter='\t', header=columns)
-                    print('Finished running AR coating simulation')
-                    t1 = time.time()
-                    t_elapsed = t1-t0
-                    print('Elapsed time: {t}s\n'.format(t=t_elapsed))
-                    return results
+                fs = np.asarray(f_list)
+                ts = np.asarray(t_list)
+                rs = np.asarray(r_list)
+                low = self.sweep_params['low']
+                high = self.sweep_params['high']
+                res = self.sweep_params['res']
+                units = self.sweep_params['units']
+                results = {}
+                results['output'] = {'freqs':fs, 'T':ts, 'R':rs}
+                results['input']= {'f_low':low, 'f_high':high, 'f_res':res, 'f_units':units}
+                t = time.ctime(time.time())
+                data_name = self._make_save_path(self.save_path, self.save_name+'_theta{}.txt'.format(angle))
+                columns = 'Frequency (Hz)\t\tTransmission amplitude\t\tReflection amplitude'
+                with open(data_name, 'wb') as f:
+                    f.write('# Frequency sweep information\n')
+                    f.write('# low: {}, high: {}, res: {}, units: {}\n'.format(low, high, res, units))
+                    f.write('#\n')
+                    f.write('# Layer information\n')
+                    for layer in self.structure:
+                        name = layer.name
+                        t = layer.thickness
+                        eps = layer.dielectric
+                        loss = layer.losstangent
+                        type = layer.type
+                        f.write('# name: {}, thickness: {}, dielectric: {}, loss: {}, type: {}\n'\
+                                    .format(name, t, eps, loss, type))
+                    f.write('#\n')
+                    np.savetxt(f, np.c_[fs, ts, rs], delimiter='\t', header=columns)
+                print('Finished running AR coating simulation')
+                t1 = time.time()
+                t_elapsed = t1-t0
+                print('Elapsed time: {t}s\n'.format(t=t_elapsed))
+#                return results
 
     def set_angle_sweep(self, theta_min, theta_max, res=1., units='deg'):
         """Set the range of incident angles over which to run the simulation. 
