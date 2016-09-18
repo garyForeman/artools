@@ -203,6 +203,8 @@ class Builder:
             An array of refractive indices, ordered from source to terminator
         delta : array
             An array of wavevector offsets
+        theta : array
+            An array of Snell angles in radians. Expects the output of snell().
         
         Returns
         -------
@@ -212,70 +214,16 @@ class Builder:
         """
         t_amp = np.zeros((len(self.structure), len(self.structure)), dtype=complex)
         r_amp = np.zeros((len(self.structure), len(self.structure)), dtype=complex)
-#         # debugging statement
-#         print("\nr_amp is:")
-#         for i in range(len(self.structure)):
-#             for j in range(len(self.structure)):
-#                 print("{}{} {}".format(i,j,r_amp[i][j]))
-#         # debugging statement
-#         print("\nt_amp is:")
-#         for i in range(len(self.structure)):
-#             for j in range(len(self.structure)):
-#                 print("{}{} {}".format(i,j,t_amp[i][j]))
-
         for i in range(len(self.structure)-1):
             t_amp[i,i+1] = self._t_at_interface(polarization, n[i], n[i+1], theta[i], theta[i+1])
             r_amp[i,i+1] = self._r_at_interface(polarization, n[i], n[i+1], theta[i], theta[i+1])
-#         # debugging statement
-#         print("\nmod r_amp is:")
-#         for i in range(len(self.structure)):
-#             for j in range(len(self.structure)):
-#                 print("{}{} {}".format(i,j,r_amp[i][j]))
-#         # debugging statement
-#         print("\nmod t_amp is:")
-#         for i in range(len(self.structure)):
-#             for j in range(len(self.structure)):
-#                 print("{}{} {}".format(i,j,t_amp[i][j]))
-
         M = np.zeros((len(self.structure),2,2),dtype=complex)
-#         # debugging statement
-#         print("\nThe 'M' matrix is:")
-#         for i in range(len(self.structure)):
-#             for j in range(2):
-#                 for k in range(2):
-#                     print("M{}{}{} ---> {}".format(i,j,k,M[i][j][k]))
-
         m_r_amp = np.zeros((len(self.structure),2,2), dtype=complex)
         m_t_amp = np.zeros((len(self.structure),2,2), dtype=complex)
         for i in range(1,len(self.structure)-1):
             m_t_amp[i] = self._make_2x2(np.exp(-1j*delta[i]), 0., 0., np.exp(1j*delta[i]), dtype=complex)
             m_r_amp[i] = self._make_2x2(1., r_amp[i,i+1], r_amp[i,i+1], 1., dtype=complex)
-
-#         # debugging statement
-#         print("\nThe temporary 'm_r_amp' matrix is:")
-#         for i in range(len(self.structure)):
-#             for j in range(2):
-#                 for k in range(2):
-#                     print("m_r_amp{}{}{} ---> {}".format(i,j,k,m_r_amp[i][j][k]))
-
-#         # debugging statement
-#         print("\nThe temporary 'm_t_amp' matrix is:")
-#         for i in range(len(self.structure)):
-#             for j in range(2):
-#                 for k in range(2):
-#                     print("m_t_amp{}{}{} ---> {}".format(i,j,k,m_t_amp[i][j][k]))
-
         m_temp = np.dot(m_t_amp, m_r_amp)
-
-#         # debugging statement
-#         print("\nThe 'm_temp' matrix is:")
-#         for i in m_temp:
-#             print i
-#         for i in range(len(self.structure)):
-#             for j in range(2):
-#                 for k in range(2):
-#                     print("m_temp{}{}{} ---> {}".format(i,j,k,m_temp[i][j][k]))
-
         for i in range(1,len(self.structure)-1):
             M[i] = 1/t_amp[i,i+1] * np.dot(self._make_2x2(np.exp(-1j*delta[i]),
                                                           0., 0., np.exp(1j*delta[i]),
@@ -283,58 +231,14 @@ class Builder:
                                            self._make_2x2(1., r_amp[i,i+1], \
                                                               r_amp[i,i+1], 1., \
                                                               dtype=complex))
-#         # debugging statement
-#         print("\nThe modified 'M' matrix is:")
-#         for i in range(len(self.structure)):
-#             for j in range(2):
-#                 for k in range(2):
-#                     print("mod M{}{}{} ---> {}".format(i,j,k,M[i][j][k]))
-
         M_prime = self._make_2x2(1., 0., 0., 1., dtype=complex)
-
-#         # debugging statement
-#         print("\nThe first modified 'M_prime' matrix is:")
-#         for i in range(2):
-#             for j in range(2):
-#                 print("1st mod M_prime{}{} ---> {}".format(i,j,M_prime[i][j]))
-
         for i in range(1, len(self.structure)-1):
-#            print("\n'M_prime' #{} is:\n{}".format(i,M_prime))
             M_prime = np.dot(M_prime, M[i])
-
-#         # debugging statement
-#         print("\nThe second modified 'M_prime' matrix is:")
-#         for i in range(2):
-#             for j in range(2):
-#                 print("2nd mod M_prime{}{} ---> {}".format(i,j,M_prime[i][j]))
-
-#         print("\nr_amp01 is ---> {}".format(r_amp[0,1]))
-#         print("t_amp01 is ---> {}".format(t_amp[0,1]))
-
         mod_M_prime = self._make_2x2(1.,r_amp[0,1], r_amp[0,1], 1., dtype=complex)/t_amp[0,1]
-
-#         # debugging statement
-#         print("\nThe third modified 'M_prime' matrix is:")
-#         for i in range(2):
-#             for j in range(2):
-#                 print("3rd mod M_prime{}{} ---> {}".format(i, j, mod_M_prime[i][j]))
-
         M_prime = np.dot(self._make_2x2(1., r_amp[0,1], r_amp[0,1], 1., \
                                             dtype=complex)/t_amp[0,1], M_prime)
-
-#         # debugging statement
-#         print("\nThe 'M_final' matrix is:")
-#         for i in range(2):
-#             for j in range(2):
-#                 print("M_final{}{} ---> {}".format(i, j, M_prime[i][j]))
-
         t = 1/M_prime[0,0]
         r = M_prime[0,1]/M_prime[0,0]
-
-#         # debugging statement
-#         print("\n't' ---> {}".format(t))
-#         print("'r' ---> {}".format(r))
-
         return (r, t)
 
     def _d_converter(self):
@@ -360,6 +264,8 @@ class Builder:
             The frequency at which to calculate the wavevector, k
         tan : array
             An array of loss tangents, ordered from vacuum to substrate
+        theta : array
+            An array of Snell angles for the model, in units of radians
         lossy : boolean, optional
             If `True` the wavevector will be found for a lossy material.
             If `False` the wavevector will be found for lossless material.
@@ -370,9 +276,7 @@ class Builder:
             The complex wavenumber, k
         """
         if lossy:
-            k = 2*np.pi*n*frequency*np.cos(theta)*(1+0.5j*tan)/3e8 # New expression for loss (9/13/16)
-                                                     # this one is more...subtractive
-#             k = 2*np.pi*n*frequency*(1-0.5j*tan)/3e8 # Original expression for loss (pre 9/13/16), but it is incorrectly ADDITIVE
+            k = 2*np.pi*n*frequency*np.cos(theta)*(1+0.5j*tan)/3e8
         else:
             k = 2*np.pi*n*frequency/3e8
         return k
@@ -390,7 +294,7 @@ class Builder:
         Returns
         -------
         delta : array
-            The wavenumber offset
+            The phase difference
         """
         olderr = sp.seterr(invalid= 'ignore') # turn off 'invalid multiplication' error;
                                               # it's just the 'inf' boundaries
@@ -421,16 +325,12 @@ class Builder:
             The index of refraction of material 'i'.
         n_f : float
             The index of refraction of material 'f'.
-        theta_i : float, optional
-            The angle of incidence at interface 'i'. Default is 0.
-        theta_f : float, optional
-            The angle of incidence at interface 'f'. Default is 0.
+        theta_i : float
+            The angle of incidence at interface 'i', in radians.
+        theta_f : float
+            The angle of incidence at interface 'f', in radians.
         """
         return np.abs(net_t_amp**2)*(n_f*np.cos(theta_f)/n_i*np.cos(theta_i))
-        #elif (polarization=='p'):
-        #    return np.abs(net_t_amp**2) * (n_f/n_i)
-        #else:
-        #    raise ValueError("Polarization must be 's' or 'p'")
 
     def _get_bandpass_stats(self):
         mean = []
@@ -450,7 +350,7 @@ class Builder:
         return
 
     def _make_2x2(self, A11, A12, A21, A22, dtype=float):
-        """Return a 2x2 array quickly.
+        """Return a 2x2 array quickly. (Thanks Steve!)
 
         Arguments
         ---------
@@ -498,6 +398,10 @@ class Builder:
             The index of refraction of the first material.
         n2 : float
             The index of refraction of the second material.
+        theta1 : float
+            The angle of incidence at interface 1, in radians
+        theta2 : float
+            The angle of incidence at interface 2, in radians
 
         Returns
         -------
@@ -571,6 +475,10 @@ class Builder:
             The index of refraction of the first material.
         n2 : float
             The index of refraction of the second material.
+        theta1 : float
+            The angle of incidence at interface 1, in radians
+        theta2 : float
+            The angle of incidence at interface 2, in radians
 
         Returns
         -------
@@ -588,22 +496,22 @@ class Builder:
         else:
             raise ValueError("Polarization must be 's' or 'p'")
 
-    def _unpolarized_simulation(self, frequency, theta_0=0):
-        """Handle the special case of unpolarized light by running the model
-        for both 's' and 'p' polarizations and computing the mean of the two
-        results.
+#     def _unpolarized_simulation(self, frequency, theta_0=0):
+#         """Handle the special case of unpolarized light by running the model
+#         for both 's' and 'p' polarizations and computing the mean of the two
+#         results.
 
-        Arguments
-        ---------
-        frequency : float
-            The frequency (in Hz) at which to evaluate the model.
-        theta_0 : float, optional
-            The angle of incidence at the initial interface. Default is 0.
-        """
-        s_data = self.simulate(frequency, 's', theta_0)
-        p_data = self.simulate(frequency, 'p', theta_0)
-        T = (s_data + p_data)/2
-        return T
+#         Arguments
+#         ---------
+#         frequency : float
+#             The frequency (in Hz) at which to evaluate the model.
+#         theta_0 : float, optional
+#             The angle of incidence at the initial interface. Default is 0.
+#         """
+#         s_data = self.simulate(frequency, 's', theta_0)
+#         p_data = self.simulate(frequency, 'p', theta_0)
+#         T = (s_data + p_data)/2
+#         return T
  
     def add_layer(self, material, thickness=5.0, units='mil', type='layer', \
                       stack_position=-1):
@@ -924,10 +832,8 @@ class Builder:
         """
         print('\nThe materials with known dielectric properties are:\n')
         pprint.pprint(mats.Electrical.props)
-#         pprint.pprint(mats.Electrical.DIELECTRIC)
         print('\nThe materials with known loss tangents are:\n')
         pprint.pprint(mats.Electrical.props)
-#         pprint.pprint(mats.Electrical.LOSS_TAN)
         return
 
     def sim_single_freq(self, frequency, theta_0, pol='s'):
@@ -940,33 +846,24 @@ class Builder:
         pol : string, optional
             The polarization of the source wave. Must be one of: 's', 
             'p', or 'u'. Default is 's'.
-            
-            ### NOTE ###
-            I've chosen 's' polarization as the default because this 
-            simulator only handles normal incidence waves, and and at 
-            normal incidence 's' and 'p' are equivalent.
         theta_0 : float, optional
             The angle of incidence at the first interface.
 
         Returns
         -------
         result : dict
-            dict = {
-                'T' : array; the total transmission through the model.
-                'R' : array; the total reflection through the model.
-                    }
+            result has two keys:
+            1) 'T' : array; the total transmission through the model
+            2) 'R' : array; the total reflection through the model
         """
-        # check the desired polarization
-#        if polarization == 'u':
-#            return self._unpolarized_simulation(frequency)
-        n = self._sort_ns()                                 # get all refractive indices
-        d = self._sort_ds()                                 # get all thicknesses
-        tan = self._sort_tans()                             # get all loss tans
+        n = self._sort_ns()
+        d = self._sort_ds()
+        tan = self._sort_tans()
         theta = self.snell(n, theta_0)
-        k = self._find_ks(n, frequency, tan, theta)                # find all wavevectors, k
-        delta = self._find_k_offsets(k, d)                  # calculate all offsets
-        r, t = self._calc_R_T_amp(pol, n, delta, theta)   # get trans, ref amps
-        T = self._get_T(t, n[0], n[-1], theta[0], theta[-1])       # find net trans, ref power
+        k = self._find_ks(n, frequency, tan, theta)
+        delta = self._find_k_offsets(k, d)
+        r, t = self._calc_R_T_amp(pol, n, delta, theta)
+        T = self._get_T(t, n[0], n[-1], theta[0], theta[-1])
         R = self._get_R(r)
         result = {'T':T, 'R':R}
         return result
@@ -987,67 +884,3 @@ class Builder:
             angle = sp.arcsin(np.real_if_close(indices[i]*np.sin(theta[i])/indices[i+1]))
             theta.append(angle)
         return theta
-
-# class MCMC:
-#     """Contains the methods specific to ``emcee``, the MCMC Hammer, and helper
-#     methods to set up MCMC simulations and visualize the results.
-#     """
-#     def __init__(self):
-#         self.name = 'blah'
-#         self.priors = []
-
-#     def __repr__(self):
-#         return '{} (MCMC object)'.format(self.name)
-
-#     def add_prior(self, layer_number, prior_type, low_bound, hi_bound, units='mil'):
-#         """Add a prior to a part of the model in order to constrain the total
-#         simulation space. Can only place constraints on thickness and dielectric
-#         for now.
-
-#         Arguments
-#         ---------
-#         layer_number : int
-#             The position of the layer in the AR coating stack. Indexed from 1, so
-#             incident `vacuum` is 0 and first AR coating layer is 1.
-#         prior_type : string
-#             Flags the prior as either a cut to dielectric constant or thickness.
-#             One of 'thickness', 't', 'dielectric', or 'd'.
-#         low_bound : float
-#             The lower boundary of the range.
-#         hi_bound : float
-#             The higher boundary of the range.
-#         units : string, optional
-#             The units of the lower and upper bounds. Only applies to 'thickness'
-#             cuts because dielectric constants are unitless. Defaults to `mils`.
-#         """
-#         prior = {'layer_number':layer_number, 'prior_type':prior_type, \
-#                      'low_bound':low_bound, 'hi_bound':hi_bound, 'units':units}
-#         self.priors.append(prior)
-#         return
-
-#     def lnlikelihood(self):
-#         return
-
-#     def lnprior(self):
-#         """Define the known prior attributes of the model in order to constrain
-#         the simulation space.
-#         """
-        
-#         return
-
-#     def lnprobability(self):
-#         """The logspace sum of ``lnprior`` and ``lnlikelihood``.
-#         """
-#         return
-
-#     def sort_priors(self):
-#         """Sort the contents of ``self.prior`` by layer number
-        
-#         Returns
-#         -------
-#         sorted_priors : list
-#             A list of priors sorted by layer number. If a layer has both
-#             thickness and dielectric priors, the thickness dielectric is first
-#             and the dielectric is second.
-#         """
-#         return
