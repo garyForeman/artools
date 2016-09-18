@@ -178,17 +178,18 @@ class Builder:
         Defaults is `None`.
     """
     def __init__(self):
+        self.a_sweep_params = {'low':'unset', 'high':'unset', 'res':'unset', 'units':'unset'}
         self.angle_sweep = None
         self.bands = [(81.7e9, 107.5e9),(128.6e9, 167.2e9),(196.9e9, 249.2e9)]
+        self.f_sweep_params = {'low':'unset', 'high':'unset', 'res':'unset', 'units':'unset'}
         self.freq_sweep = None
         self.optimization_frequency = 160e9        # given in Hz, i.e. 160 GHz
         self.polarization = 's'
-        self.save_name = 'transmission_data_{t}.txt'.format(t=time.ctime(time.time()))
+        self.save_name = 'transmission_data_{t}'.format(t=time.ctime(time.time()))
         self.save_path = '.'
         self.source = None
         self.stack = []
         self.structure = []
-        self.sweep_params = {'low':'unset', 'high':'unset', 'res':'unset', 'units':'unset'}
         self.terminator = None
 
     def _calc_R_T_amp(self, polarization, n, delta, theta):
@@ -761,10 +762,10 @@ class Builder:
             fs = np.asarray(f_list)
             ts = np.asarray(t_list)
             rs = np.asarray(r_list)
-            low = self.sweep_params['low']
-            high = self.sweep_params['high']
-            res = self.sweep_params['res']
-            units = self.sweep_params['units']
+            low = self.f_sweep_params['low']
+            high = self.f_sweep_params['high']
+            res = self.f_sweep_params['res']
+            units = self.f_sweep_params['units']
             results = {}
             results['output'] = {'freqs':fs, 'T':ts, 'R':rs}
             results['input']= {'f_low':low, 'f_high':high, 'f_res':res, 'f_units':units}
@@ -792,6 +793,7 @@ class Builder:
             print('Elapsed time: {t}s\n'.format(t=t_elapsed))
             return results
         else:
+            angles = []
             for angle in self.angle_sweep:
                 print angle
                 f_list = []
@@ -805,19 +807,29 @@ class Builder:
                 fs = np.asarray(f_list)
                 ts = np.asarray(t_list)
                 rs = np.asarray(r_list)
-                low = self.sweep_params['low']
-                high = self.sweep_params['high']
-                res = self.sweep_params['res']
-                units = self.sweep_params['units']
+                f_low = self.f_sweep_params['low']
+                f_high = self.f_sweep_params['high']
+                f_res = self.f_sweep_params['res']
+                f_units = self.f_sweep_params['units']
+                a_low = self.a_sweep_params['low']
+                a_high = self.a_sweep_params['high']
+                a_res = self.a_sweep_params['res']
+                a_units = self.a_sweep_params['units']
+                theta = str(sp.rad2deg(angle))[:4]
                 results = {}
+                input = {}
                 results['output'] = {'freqs':fs, 'T':ts, 'R':rs}
-                results['input']= {'f_low':low, 'f_high':high, 'f_res':res, 'f_units':units}
+                input['frequency'] = {'f_low':f_low, 'f_high':f_high, 'f_res':f_res, 'f_units':f_units}
+                input['angle'] = {'a_low':a_low, 'a_high':a_high, 'a_res':a_res, 'a_units':a_units, 'a_input':theta}
+                results['input'] = input
                 t = time.ctime(time.time())
-                data_name = self._make_save_path(self.save_path, self.save_name+'_theta{}.txt'.format(angle))
+                data_name = self._make_save_path(self.save_path, self.save_name+'_theta{}.txt'.format(theta))
                 columns = 'Frequency (Hz)\t\tTransmission amplitude\t\tReflection amplitude'
                 with open(data_name, 'wb') as f:
+                    f.write('# Angle sweep imformation\n')
+                    f.write('low: {}, high: {}, res: {}, units: {}, this angle: {}\n'.format(a_low, a_high, a_res, a_units, theta))
                     f.write('# Frequency sweep information\n')
-                    f.write('# low: {}, high: {}, res: {}, units: {}\n'.format(low, high, res, units))
+                    f.write('# low: {}, high: {}, res: {}, units: {}\n'.format(f_low, f_high, f_res, f_units))
                     f.write('#\n')
                     f.write('# Layer information\n')
                     for layer in self.structure:
@@ -834,7 +846,8 @@ class Builder:
                 t1 = time.time()
                 t_elapsed = t1-t0
                 print('Elapsed time: {t}s\n'.format(t=t_elapsed))
-#                return results
+                angles.append(results)
+            return np.asarray(angles)
 
     def set_angle_sweep(self, theta_min, theta_max, res=1., units='deg'):
         """Set the range of incident angles over which to run the simulation. 
@@ -862,10 +875,14 @@ class Builder:
         min = theta_min
         max = theta_max
         res = res
+        self.a_sweep_params['low'] = min
+        self.a_sweep_params['high'] = max
+        self.a_sweep_params['res'] = res
+        self.a_sweep_params['units'] = units
         if units == 'deg':
-            min = (np.pi/180.)*min
-            max = (np.pi/180.)*max
-            res = (np.pi/180.)*res
+            min = sp.deg2rad(min)
+            max = sp.deg2rad(max)
+            res = sp.deg2rad(res)
         samples = (max-min)/res
         if samples == 0:
             self.angle_sweep = np.array([0., min])
@@ -895,10 +912,10 @@ class Builder:
         high = upper_bound*convert[units]
         samples = (high-low)/(resolution*convert[units])
         self.freq_sweep = np.linspace(low, high, samples)
-        self.sweep_params['low'] = lower_bound
-        self.sweep_params['high'] = upper_bound
-        self.sweep_params['res'] = resolution
-        self.sweep_params['units'] = units
+        self.f_sweep_params['low'] = lower_bound
+        self.f_sweep_params['high'] = upper_bound
+        self.f_sweep_params['res'] = resolution
+        self.f_sweep_params['units'] = units
         return
 
     def show_materials(self):
