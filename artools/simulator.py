@@ -373,6 +373,44 @@ class Builder:
         array[1,1] = A22
         return array
 
+    def _make_header(self, sim_input):
+        """Make the header for the output text file.
+
+        Arguments
+        ---------
+        sim_input : dict
+            A dictionary of simulation inputs
+
+        Returns
+        -------
+        header : list
+            A list of strings to write as the file header
+        """
+        f_input = sim_input['frequency']
+        a_input = sim_input['angle']
+        header = ['# Frequency sweep information\n',
+                  '# low: {}, high: {}, res: {}, units: {}, polarization: {}\n'\
+                      .format(f_input['f_low'], f_input['f_high'],
+                              f_input['f_res'], f_input['f_units'],
+                              f_input['pol']),
+                  '#\n',
+                  '# Angle sweep information\n',
+                  '# low: {}, high: {}, res: {}, units: {}, this angle: {}\n'\
+                      .format(a_input['a_low'], a_input['a_high'],
+                              a_input['a_res'], a_input['a_units'],
+                              a_input['a_input']),
+                  '#\n',
+                  '# Layer information\n']
+        for layer in self.structure:
+            header.append('# name: {}, thickness: {}, dielectric: {}, loss: {}, type: {}\n'.
+                          format(layer.name, layer.thickness, layer.dielectric,
+                                 layer.losstangent, layer.type))
+        header.append('#\n')
+        header.append('# Frequency (Hz)\t\t'
+                      'Transmission amplitude\t\t'
+                      'Reflection amplitude\n')
+        return header
+
     def _make_save_path(self, save_path, save_name):
         """Assemble the file name and path to the results file.
         
@@ -384,7 +422,7 @@ class Builder:
         if save_name.endswith('.txt'):
             path = os.path.join(save_path, save_name)
         else:
-            self.save_name = save_name+'.txt'
+            save_name = save_name+'.txt'
             path = os.path.join(save_path, save_name)
         return path
 
@@ -676,26 +714,19 @@ class Builder:
             res = self.f_sweep_params['res']
             units = self.f_sweep_params['units']
             results = {}
+            input = {}
             results['output'] = {'freqs':fs, 'T':ts, 'R':rs}
-            results['input']= {'f_low':low, 'f_high':high, 'f_res':res, 'f_units':units}
+            input['frequency'] = {'f_low':low, 'f_high':high, 'f_res':res,
+                                  'f_units':units, 'pol':self.polarization}
+            input['angle'] = {'a_low':'None', 'a_high':'None', 'a_res':'None',
+                              'a_units':'None', 'a_input':0.}
+            results['input'] = input
             t = time.ctime(time.time())
             data_name = self._make_save_path(self.save_path, self.save_name)
-            columns = 'Frequency (Hz)\t\tTransmission amplitude\t\tReflection amplitude'
             with open(data_name, 'wb') as f:
-                f.write('# Frequency sweep information\n')
-                f.write('# low: {}, high: {}, res: {}, units: {}, polarization: {}\n'.format(low, high, res, units, self.polarization))
-                f.write('#\n')
-                f.write('# Layer information\n')
-                for layer in self.structure:
-                    name = layer.name
-                    t = layer.thickness
-                    eps = layer.dielectric
-                    loss = layer.losstangent
-                    type = layer.type
-                    f.write('# name: {}, thickness: {}, dielectric: {}, loss: {}, type: {}\n'\
-                                .format(name, t, eps, loss, type))
-                f.write('#\n')
-                np.savetxt(f, np.c_[fs, ts, rs], delimiter='\t', header=columns)
+                header = self._make_header(results['input'])
+                f.writelines(header)
+                np.savetxt(f, np.c_[fs, ts, rs], delimiter='\t')
             print('Finished running AR coating simulation')
             t1 = time.time()
             t_elapsed = t1-t0
@@ -709,7 +740,8 @@ class Builder:
                 t_list = []
                 r_list = []
                 for f in self.freq_sweep:
-                    results = self.sim_single_freq(f, theta_0=angle, pol=self.polarization)
+                    results = self.sim_single_freq(f, theta_0=angle,
+                                                   pol=self.polarization)
                     f_list.append(f)
                     t_list.append(results['T'])
                     r_list.append(results['R'])
@@ -728,29 +760,37 @@ class Builder:
                 results = {}
                 input = {}
                 results['output'] = {'freqs':fs, 'T':ts, 'R':rs}
-                input['frequency'] = {'f_low':f_low, 'f_high':f_high, 'f_res':f_res, 'f_units':f_units}
-                input['angle'] = {'a_low':a_low, 'a_high':a_high, 'a_res':a_res, 'a_units':a_units, 'a_input':theta}
+                input['frequency'] = {'f_low':f_low, 'f_high':f_high,
+                                      'f_res':f_res, 'f_units':f_units,
+                                      'pol':self.polarization}
+                input['angle'] = {'a_low':a_low, 'a_high':a_high,
+                                  'a_res':a_res, 'a_units':a_units,
+                                  'a_input':theta}
                 results['input'] = input
                 t = time.ctime(time.time())
-                data_name = self._make_save_path(self.save_path, self.save_name+'_theta{}.txt'.format(theta))
-                columns = 'Frequency (Hz)\t\tTransmission amplitude\t\tReflection amplitude'
+                data_name = self._make_save_path(self.save_path,
+                                                 self.save_name+'_theta{}.txt'\
+                                                     .format(theta))
+#                columns = 'Frequency (Hz)\t\tTransmission amplitude\t\tReflection amplitude'
                 with open(data_name, 'wb') as f:
-                    f.write('# Angle sweep imformation\n')
-                    f.write('# low: {}, high: {}, res: {}, units: {}, this angle: {}\n'.format(a_low, a_high, a_res, a_units, theta))
-                    f.write('# Frequency sweep information\n')
-                    f.write('# low: {}, high: {}, res: {}, units: {}\n'.format(f_low, f_high, f_res, f_units))
-                    f.write('#\n')
-                    f.write('# Layer information\n')
-                    for layer in self.structure:
-                        name = layer.name
-                        t = layer.thickness
-                        eps = layer.dielectric
-                        loss = layer.losstangent
-                        type = layer.type
-                        f.write('# name: {}, thickness: {}, dielectric: {}, loss: {}, type: {}\n'\
-                                    .format(name, t, eps, loss, type))
-                    f.write('#\n')
-                    np.savetxt(f, np.c_[fs, ts, rs], delimiter='\t', header=columns)
+#                     f.write('# Angle sweep imformation\n')
+#                     f.write('# low: {}, high: {}, res: {}, units: {}, this angle: {}\n'.format(a_low, a_high, a_res, a_units, theta))
+#                     f.write('# Frequency sweep information\n')
+#                     f.write('# low: {}, high: {}, res: {}, units: {}\n'.format(f_low, f_high, f_res, f_units))
+#                     f.write('#\n')
+#                     f.write('# Layer information\n')
+#                     for layer in self.structure:
+#                         name = layer.name
+#                         t = layer.thickness
+#                         eps = layer.dielectric
+#                         loss = layer.losstangent
+#                         type = layer.type
+#                         f.write('# name: {}, thickness: {}, dielectric: {}, loss: {}, type: {}\n'\
+#                                     .format(name, t, eps, loss, type))
+#                     f.write('#\n')
+                    header = self._make_header(results['input'])
+                    f.writelines(header)
+                    np.savetxt(f, np.c_[fs, ts, rs], delimiter='\t')
                 print('Finished running AR coating simulation')
                 t1 = time.time()
                 t_elapsed = t1-t0
