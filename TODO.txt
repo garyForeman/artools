@@ -1,3 +1,5 @@
+CHANGES FOR v0.1.4
+
 * update docstrings
   	 * definitely check set_angle_sweep() docstring. it is snarky.
 * fix get_bandpass_statistics() in simulator.py
@@ -7,3 +9,4 @@
 * double-check bandpass plotting. it's probably broken :(
 * fix logging for theta sweeps
 * fix results return for theta sweeps. right now quick plotting is broken bc plotter.load_data() doesn't get any meaningful input
+* review _unpolarized_simulation(). is it still useful in its current form?
