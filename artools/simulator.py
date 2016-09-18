@@ -180,7 +180,8 @@ class Builder:
     def __init__(self):
         self.a_sweep_params = {'low':'unset', 'high':'unset', 'res':'unset', 'units':'unset'}
         self.angle_sweep = None
-        self.bands = [(81.7e9, 107.5e9),(128.6e9, 167.2e9),(196.9e9, 249.2e9)]
+        self.bands = []
+#        self.bands = [(81.7e9, 107.5e9),(128.6e9, 167.2e9),(196.9e9, 249.2e9)]
         self.f_sweep_params = {'low':'unset', 'high':'unset', 'res':'unset', 'units':'unset'}
         self.freq_sweep = None
         self.optimization_frequency = 160e9        # given in Hz, i.e. 160 GHz
@@ -658,7 +659,7 @@ class Builder:
         print('Beginning AR coating simulation')
         self._d_converter()
         self._interconnect()
-        if len(self.angle_sweep) < 2:
+        if self.angle_sweep is None:
             f_list = []
             t_list = []
             r_list = []
@@ -735,7 +736,7 @@ class Builder:
                 columns = 'Frequency (Hz)\t\tTransmission amplitude\t\tReflection amplitude'
                 with open(data_name, 'wb') as f:
                     f.write('# Angle sweep imformation\n')
-                    f.write('low: {}, high: {}, res: {}, units: {}, this angle: {}\n'.format(a_low, a_high, a_res, a_units, theta))
+                    f.write('# low: {}, high: {}, res: {}, units: {}, this angle: {}\n'.format(a_low, a_high, a_res, a_units, theta))
                     f.write('# Frequency sweep information\n')
                     f.write('# low: {}, high: {}, res: {}, units: {}\n'.format(f_low, f_high, f_res, f_units))
                     f.write('#\n')
@@ -796,6 +797,14 @@ class Builder:
             self.angle_sweep = np.array([0., min])
             return
         self.angle_sweep = np.linspace(min, max, samples)
+        return
+
+    def set_band_pass(self, lower_bound, upper_bound):
+        """Add a frequency range to the list of bands. You can get basic
+        statistics for each range in the list of bands. Assumes the units of the
+        band passes are those defined in ``set_freq_sweep()``.
+        """
+        self.bands.append((lower_bound, upper_bound))
         return
 
     def set_freq_sweep(self, lower_bound, upper_bound, resolution=1, units='ghz'):
