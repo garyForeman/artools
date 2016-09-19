@@ -178,15 +178,16 @@ class Builder:
         Defaults is `None`.
     """
     def __init__(self):
-        self.a_sweep_params = {'low':'unset', 'high':'unset', 'res':'unset', 'units':'unset'}
+        self.a_sweep_params = {'low':'unset', 'high':'unset', 'res':'unset',
+                               'units':'unset'}
         self.angle_sweep = None
         self.bands = []
-#        self.bands = [(81.7e9, 107.5e9),(128.6e9, 167.2e9),(196.9e9, 249.2e9)]
-        self.f_sweep_params = {'low':'unset', 'high':'unset', 'res':'unset', 'units':'unset'}
+        self.f_sweep_params = {'low':'unset', 'high':'unset', 'res':'unset',
+                               'units':'unset'}
         self.freq_sweep = None
         self.optimization_frequency = 160e9        # given in Hz, i.e. 160 GHz
         self.polarization = 's'
-        self.save_name = 'transmission_data_{t}'.format(t=time.ctime(time.time()))
+        self.save_name = 'artools_output_{t}'.format(t=time.ctime(time.time()))
         self.save_path = '.'
         self.source = None
         self.stack = []
@@ -229,14 +230,14 @@ class Builder:
             M[i] = 1/t_amp[i,i+1] * np.dot(self._make_2x2(np.exp(-1j*delta[i]),
                                                           0., 0., np.exp(1j*delta[i]),
                                                           dtype=complex),
-                                           self._make_2x2(1., r_amp[i,i+1], \
-                                                              r_amp[i,i+1], 1., \
+                                           self._make_2x2(1., r_amp[i,i+1],
+                                                              r_amp[i,i+1], 1.,
                                                               dtype=complex))
         M_prime = self._make_2x2(1., 0., 0., 1., dtype=complex)
         for i in range(1, len(self.structure)-1):
             M_prime = np.dot(M_prime, M[i])
         mod_M_prime = self._make_2x2(1.,r_amp[0,1], r_amp[0,1], 1., dtype=complex)/t_amp[0,1]
-        M_prime = np.dot(self._make_2x2(1., r_amp[0,1], r_amp[0,1], 1., \
+        M_prime = np.dot(self._make_2x2(1., r_amp[0,1], r_amp[0,1], 1.,
                                             dtype=complex)/t_amp[0,1], M_prime)
         t = 1/M_prime[0,0]
         r = M_prime[0,1]/M_prime[0,0]
@@ -297,7 +298,7 @@ class Builder:
         delta : array
             The phase difference
         """
-        olderr = sp.seterr(invalid= 'ignore') # turn off 'invalid multiplication' error;
+        olderr = sp.seterr(invalid='ignore')  # turn off 'invalid multiplication' error;
                                               # it's just the 'inf' boundaries
         delta = k * d
         sp.seterr(**olderr)                   # turn the error back on
@@ -333,11 +334,36 @@ class Builder:
         """
         return np.abs(net_t_amp**2)*(n_f*np.cos(theta_f)/n_i*np.cos(theta_i))
 
-    def _get_bandpass_stats(self):
-        mean = []
-        for band in self.bands:
-            pass
-        pass
+    def _get_bandpass_stats(self, band, sim_output):
+        """Compute basic descriptive statistics for a bandpass
+        
+        Arguments
+        ---------
+        band : tuple
+            A tuple consisting of the lower and uppper bounds of the band
+        sim_output : dict
+            A dictionary of simulation output results. Must have keys:
+                'freqs', 'T', 'R'
+
+        Returns
+        -------
+        stats : list
+            The basic descriptive statistics of the bandpass
+        """
+        units = {'Hz':1., 'hz':1., 'khz':1e3, 'KHz':1e3, 'mhz':1e6, 'MHz':1e6,
+                 'ghz':1e9, 'GHz':1e9, 'thz':1e12, 'THz':1e12}
+        convert = units[self.f_sweep_params['units']]
+        freqs = sim_output['freqs']
+        T = sim_output['T']
+        R = sim_output['R']
+        vals = np.ma.masked_inside(freqs, band[0]*convert, band[1]*convert)
+        mask = np.ma.getmask(vals)
+        masked_T = T[mask]
+        masked_R = R[mask]
+        T_avg = np.average(masked_T)
+        R_avg = np.average(masked_R)
+        stats = {'R_avg':R_avg, 'T_avg':T_avg}   
+        return stats
 
     def _interconnect(self):
         """Connect all the AR coating layer objects, ensuring that the source
@@ -373,22 +399,25 @@ class Builder:
         array[1,1] = A22
         return array
 
-    def _make_header(self, sim_input):
+    def _make_header(self, sim_results):
         """Make the header for the output text file.
 
         Arguments
         ---------
         sim_input : dict
-            A dictionary of simulation inputs
+            A dictionary of simulation results
 
         Returns
         -------
         header : list
             A list of strings to write as the file header
         """
-        f_input = sim_input['frequency']
-        a_input = sim_input['angle']
-        header = ['# Frequency sweep information\n',
+        f_input = sim_results['input']['frequency']
+        a_input = sim_results['input']['angle']
+        stats = sim_results['statistics']
+        header = ['# Run date: {}\n'.format(time.ctime(time.time())),
+                  '#\n',
+                  '# Frequency sweep information\n',
                   '# low: {}, high: {}, res: {}, units: {}, polarization: {}\n'\
                       .format(f_input['f_low'], f_input['f_high'],
                               f_input['f_res'], f_input['f_units'],
@@ -400,7 +429,11 @@ class Builder:
                               a_input['a_res'], a_input['a_units'],
                               a_input['a_input']),
                   '#\n',
-                  '# Layer information\n']
+                  '# Bandpass information\n']
+        for i in range(len(self.bands)):
+            header.append('# {}: {}\n'.format(self.bands[i], stats['band{}'.format(i)]))
+        header.append('#\n')
+        header.append('# Layer information\n')
         for layer in self.structure:
             header.append('# name: {}, thickness: {}, dielectric: {}, loss: {}, type: {}\n'.
                           format(layer.name, layer.thickness, layer.dielectric,
@@ -715,16 +748,24 @@ class Builder:
             units = self.f_sweep_params['units']
             results = {}
             input = {}
+            statistics = {}
             results['output'] = {'freqs':fs, 'T':ts, 'R':rs}
             input['frequency'] = {'f_low':low, 'f_high':high, 'f_res':res,
                                   'f_units':units, 'pol':self.polarization}
             input['angle'] = {'a_low':'None', 'a_high':'None', 'a_res':'None',
                               'a_units':'None', 'a_input':0.}
+            if len(self.bands) == 0:
+                statistics['band'] = 'No bandpasses set'
+            else:
+                for i in range(len(self.bands)):
+                    statistics['band{}'.format(i)] = \
+                        self._get_bandpass_stats(self.bands[i], results['output'])
+            results['statistics'] = statistics
             results['input'] = input
             t = time.ctime(time.time())
             data_name = self._make_save_path(self.save_path, self.save_name)
             with open(data_name, 'wb') as f:
-                header = self._make_header(results['input'])
+                header = self._make_header(results)
                 f.writelines(header)
                 np.savetxt(f, np.c_[fs, ts, rs], delimiter='\t')
             print('Finished running AR coating simulation')
@@ -759,6 +800,7 @@ class Builder:
                 theta = str(sp.rad2deg(angle))[:4]
                 results = {}
                 input = {}
+                statistics = {}
                 results['output'] = {'freqs':fs, 'T':ts, 'R':rs}
                 input['frequency'] = {'f_low':f_low, 'f_high':f_high,
                                       'f_res':f_res, 'f_units':f_units,
@@ -766,29 +808,20 @@ class Builder:
                 input['angle'] = {'a_low':a_low, 'a_high':a_high,
                                   'a_res':a_res, 'a_units':a_units,
                                   'a_input':theta}
+                if len(self.bands) == 0:
+                    statistics['band'] = 'No bandpasses set'
+                else:
+                    for i in range(len(self.bands)):
+                        statistics['band{}'.format(i)] = \
+                            self._get_bandpass_stats(self.bands[i], results['output'])
+                results['statistics'] = statistics
                 results['input'] = input
                 t = time.ctime(time.time())
                 data_name = self._make_save_path(self.save_path,
                                                  self.save_name+'_theta{}.txt'\
                                                      .format(theta))
-#                columns = 'Frequency (Hz)\t\tTransmission amplitude\t\tReflection amplitude'
                 with open(data_name, 'wb') as f:
-#                     f.write('# Angle sweep imformation\n')
-#                     f.write('# low: {}, high: {}, res: {}, units: {}, this angle: {}\n'.format(a_low, a_high, a_res, a_units, theta))
-#                     f.write('# Frequency sweep information\n')
-#                     f.write('# low: {}, high: {}, res: {}, units: {}\n'.format(f_low, f_high, f_res, f_units))
-#                     f.write('#\n')
-#                     f.write('# Layer information\n')
-#                     for layer in self.structure:
-#                         name = layer.name
-#                         t = layer.thickness
-#                         eps = layer.dielectric
-#                         loss = layer.losstangent
-#                         type = layer.type
-#                         f.write('# name: {}, thickness: {}, dielectric: {}, loss: {}, type: {}\n'\
-#                                     .format(name, t, eps, loss, type))
-#                     f.write('#\n')
-                    header = self._make_header(results['input'])
+                    header = self._make_header(results)
                     f.writelines(header)
                     np.savetxt(f, np.c_[fs, ts, rs], delimiter='\t')
                 print('Finished running AR coating simulation')
@@ -839,7 +872,7 @@ class Builder:
         self.angle_sweep = np.linspace(min, max, samples)
         return
 
-    def set_band_pass(self, lower_bound, upper_bound):
+    def set_bandpass(self, lower_bound, upper_bound):
         """Add a frequency range to the list of bands. You can get basic
         statistics for each range in the list of bands. Assumes the units of the
         band passes are those defined in ``set_freq_sweep()``.
