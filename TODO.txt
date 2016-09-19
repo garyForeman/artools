@@ -2,11 +2,14 @@ CHANGES FOR v0.1.4
 
 * update docstrings
   	 * definitely check set_angle_sweep() docstring. it is snarky.
-* fix get_bandpass_statistics() in simulator.py
-* include bandpass statistics in run_sim() output file
+* COMPLETED 9/19/16 - fix get_bandpass_statistics() in simulator.py
+* COMPLETED 9/19/16 - include bandpass statistics in run_sim() output file
 * inclide dielectric loss as a primary run_sim() output (like 'T', 'R', and "Frequency')
-* include handling off-normal angles of incidence
+* COMPLETED 9/16/16 - include handling off-normal angles of incidence
 * double-check bandpass plotting. it's probably broken :(
-* fix logging for theta sweeps
+* COMPLETED 9/17/16 - fix logging for theta sweeps
 * fix results return for theta sweeps. right now quick plotting is broken bc plotter.load_data() doesn't get any meaningful input
 * review _unpolarized_simulation(). is it still useful in its current form?
+* ADD TO HEADER
+      	 * COMPLETED 9/19/16 - date stamp
+* think of different way to handle angle sweep outputs. maybe log the header for each angle, but pickle the output so there's just two  files instead of several.
