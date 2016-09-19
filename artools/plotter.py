@@ -204,7 +204,7 @@ class Plot:
             the 'data' and 'raw_data' attributes.
         """
         self.sim_setup = data['input']
-        self.frequency_units = self.sim_setup['f_units']
+        self.frequency_units = self.sim_setup['frequency']['f_units']
         self.data = data['output']
         self.raw_data = data['output']
         return
