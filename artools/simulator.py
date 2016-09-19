@@ -774,6 +774,10 @@ class Builder:
             print('Elapsed time: {t}s\n'.format(t=t_elapsed))
             return results
         else:
+            if self.angle_sweep[0] != 0:
+                self.angle_sweep = self.angle_sweep.tolist()
+                self.angle_sweep.insert(0, 0)
+                self.angle_sweep = np.asarray(self.angle_sweep)
             angles = []
             for angle in self.angle_sweep:
                 print angle
