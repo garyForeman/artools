@@ -13,3 +13,5 @@ CHANGES FOR v0.1.4
 * ADD TO HEADER
       	 * COMPLETED 9/19/16 - date stamp
 * think of different way to handle angle sweep outputs. maybe log the header for each angle, but pickle the output so there's just two  files instead of several.
+* pass bandpasses set in simulator to plotter
+* fix how plotter's load_data() handles the output of an angle sweep
