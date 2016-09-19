@@ -784,19 +784,21 @@ class Builder:
                 self.angle_sweep = np.asarray(self.angle_sweep)
             angles = []
             for angle in self.angle_sweep:
-                print angle
                 f_list = []
                 t_list = []
                 r_list = []
+                loss_list = []
                 for f in self.freq_sweep:
                     results = self.sim_single_freq(f, theta_0=angle,
                                                    pol=self.polarization)
                     f_list.append(f)
                     t_list.append(results['T'])
                     r_list.append(results['R'])
+                    loss_list.append(results['loss'])
                 fs = np.asarray(f_list)
                 ts = np.asarray(t_list)
                 rs = np.asarray(r_list)
+                loss = np.asarray(loss_list)
                 f_low = self.f_sweep_params['low']
                 f_high = self.f_sweep_params['high']
                 f_res = self.f_sweep_params['res']
@@ -809,7 +811,7 @@ class Builder:
                 results = {}
                 input = {}
                 statistics = {}
-                results['output'] = {'freqs':fs, 'T':ts, 'R':rs}
+                results['output'] = {'freqs':fs, 'T':ts, 'R':rs, 'loss':loss}
                 input['frequency'] = {'f_low':f_low, 'f_high':f_high,
                                       'f_res':f_res, 'f_units':f_units,
                                       'pol':self.polarization}
@@ -957,7 +959,6 @@ class Builder:
         R = self._get_R(r)
         loss = 1-T-R
         result = {'T':T, 'R':R, 'loss':loss}
-#        result = {'T':T, 'R':R}
         return result
 
     def snell(self, indices, theta_0):
