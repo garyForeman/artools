@@ -440,8 +440,9 @@ class Builder:
                                  layer.losstangent, layer.type))
         header.append('#\n')
         header.append('# Frequency (Hz)\t\t'
-                      'Transmission amplitude\t\t'
-                      'Reflection amplitude\n')
+                      'Transmission\t\t\t'
+                      'Reflection\t\t\t'
+                      'Loss\n')
         return header
 
     def _make_save_path(self, save_path, save_name):
@@ -734,14 +735,17 @@ class Builder:
             f_list = []
             t_list = []
             r_list = []
+            loss_list = []
             for f in self.freq_sweep:
                 results = self.sim_single_freq(f, theta_0=0, pol=self.polarization)
                 f_list.append(f)
                 t_list.append(results['T'])
                 r_list.append(results['R'])
+                loss_list.append(results['loss'])
             fs = np.asarray(f_list)
             ts = np.asarray(t_list)
             rs = np.asarray(r_list)
+            loss = np.asarray(loss_list)
             low = self.f_sweep_params['low']
             high = self.f_sweep_params['high']
             res = self.f_sweep_params['res']
@@ -749,7 +753,7 @@ class Builder:
             results = {}
             input = {}
             statistics = {}
-            results['output'] = {'freqs':fs, 'T':ts, 'R':rs}
+            results['output'] = {'freqs':fs, 'T':ts, 'R':rs, 'loss':loss}
             input['frequency'] = {'f_low':low, 'f_high':high, 'f_res':res,
                                   'f_units':units, 'pol':self.polarization}
             input['angle'] = {'a_low':'None', 'a_high':'None', 'a_res':'None',
@@ -767,7 +771,7 @@ class Builder:
             with open(data_name, 'wb') as f:
                 header = self._make_header(results)
                 f.writelines(header)
-                np.savetxt(f, np.c_[fs, ts, rs], delimiter='\t')
+                np.savetxt(f, np.c_[fs, ts, rs, loss], delimiter='\t')
             print('Finished running AR coating simulation')
             t1 = time.time()
             t_elapsed = t1-t0
@@ -951,7 +955,9 @@ class Builder:
         r, t = self._calc_R_T_amp(pol, n, delta, theta)
         T = self._get_T(t, n[0], n[-1], theta[0], theta[-1])
         R = self._get_R(r)
-        result = {'T':T, 'R':R}
+        loss = 1-T-R
+        result = {'T':T, 'R':R, 'loss':loss}
+#        result = {'T':T, 'R':R}
         return result
 
     def snell(self, indices, theta_0):
