@@ -17,7 +17,7 @@ import time
 import materials as mats
 import numpy as np
 import scipy as sp
-
+import json
 
 class Layer:
     """A layer in the AR coating.
@@ -614,6 +614,8 @@ class Builder:
             from 0. Default is -1 (i.e., layer is automatically added
             to the end (bottom?) of the stack.
         """
+#         with open('materials.json', 'r') as f:
+#             mats = json.load(f)
         type = type.lower()
         if type == 'layer':
             layer = Layer()
