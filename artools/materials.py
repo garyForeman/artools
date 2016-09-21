@@ -26,6 +26,9 @@ class Electrical:
                     'ultem' : (3.15, 1.3e-3),
                     'vacuum' : (1., 0.),
                     }
+
+
+
 	
 		
 class Thermal:
