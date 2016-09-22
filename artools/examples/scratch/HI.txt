@@ -1,3 +1,0 @@
-HI
-
-This is where the output of the example script(s?) is stored.
