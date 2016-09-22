@@ -1,0 +1,72 @@
+{
+    "alumina": {
+        "dielectric": 9.7, 
+        "lib": "program", 
+        "tand": 0.00074
+    }, 
+    "eptfe": {
+        "dielectric": 1.6, 
+        "lib": "program", 
+        "tand": 0.00025
+    }, 
+    "ideal2": {
+        "dielectric": 2.0, 
+        "lib": "program", 
+        "tand": 0.0
+    }, 
+    "ideal4": {
+        "dielectric": 4.0, 
+        "lib": "program", 
+        "tand": 0.0
+    }, 
+    "ideal7": {
+        "dielectric": 7.0, 
+        "lib": "program", 
+        "tand": 0.0
+    }, 
+    "idealalumina": {
+        "dielectric": 10.0, 
+        "lib": "program", 
+        "tand": 0.0
+    }, 
+    "ro3006": {
+        "dielectric": 6.15, 
+        "lib": "program", 
+        "tand": 0.001526
+    }, 
+    "ro3035": {
+        "dielectric": 3.5, 
+        "lib": "program", 
+        "tand": 0.0017
+    }, 
+    "silicon": {
+        "dielectric": 10.4, 
+        "lib": "program", 
+        "tand": 0.015
+    }, 
+    "srtio3": {
+        "dielectric": 300., 
+        "lib": "program", 
+        "tand": 0.0003
+    }, 
+    "stycast1266": {
+        "dielectric": 3.0, 
+        "lib": "program", 
+        "tand": 0.02
+    }, 
+    "stycast2850lv": {
+        "dielectric": 5.36, 
+        "lib": "program", 
+        "tand": 0.051
+    }, 
+    "ultem": {
+        "dielectric": 3.15, 
+        "lib": "program", 
+        "tand": 0.0013
+    }, 
+    "vacuum": {
+        "dielectric": 1.0, 
+        "lib": "program", 
+        "tand": 0.0
+    }
+}
