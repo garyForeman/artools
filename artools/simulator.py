@@ -14,10 +14,10 @@ import glob
 import os
 import pprint
 import time
-import materials as mats
+#import materials as mats
 import numpy as np
 import scipy as sp
-
+import json
 
 class Layer:
     """A layer in the AR coating.
@@ -614,51 +614,54 @@ class Builder:
             from 0. Default is -1 (i.e., layer is automatically added
             to the end (bottom?) of the stack.
         """
-        type = type.lower()
-        if type == 'layer':
-            layer = Layer()
-            layer.name = material.lower()
-            layer.thickness = thickness
-            layer.units = units
-            try:
-                layer.dielectric = mats.Electrical.props[layer.name][0]
-            except:
-                raise KeyError('I don\'t know that material!')
-            try:
-                layer.losstangent = mats.Electrical.props[layer.name][1]
-            except:
-                layer.losstangent = 0
-                print('\nI don\'t know this loss tangent. Setting loss to 0!')
-            if (stack_position == -1):
-                self.stack.append(layer)
+        matpath = os.path.dirname(os.path.abspath(__file__))
+        with open(os.path.join(matpath,'materials.json'), 'r') as f:
+            mats = json.load(f)
+            type = type.lower()
+            if type == 'layer':
+                layer = Layer()
+                layer.name = material.lower()
+                layer.thickness = thickness
+                layer.units = units
+                try:
+                    layer.dielectric = mats[layer.name]['dielectric']
+                except:
+                    raise KeyError('I don\'t know that material!')
+                try:
+                    layer.losstangent = mats[layer.name]['tand']
+                except:
+                    layer.losstangent = 0
+                    print('\nI don\'t know this loss tangent. Setting loss to 0!')
+                if (stack_position == -1):
+                    self.stack.append(layer)
+                else:
+                    self.stack.insert(stack_position, layer)
+            elif type == 'source':
+                self.source = SourceLayer()
+                self.source.name = material.lower()
+                try:
+                    self.source.dielectric = mats[self.source.name]['dielectric']
+                except:
+                    raise KeyError('I don\'t know that material!')
+                try:
+                    self.source.losstangent = mats[self.source.name]['tand']
+                except:
+                    self.source.losstangent = 0
+                    print('\nI don\'t know this loss tangent. Setting loss to 0!')
+            elif type == 'terminator':
+                self.terminator = TerminatorLayer()
+                self.terminator.name = material.lower()
+                try:
+                    self.terminator.dielectric = mats[self.terminator.name]['dielectric']
+                except:
+                    raise KeyError('I don\'t know that material!')
+                try:
+                    self.terminator.losstangent = mats[self.terminator.name]['tand']
+                except:
+                    self.terminator.losstangent = 0
+                    print('\nI don\'t know this loss tangent. Setting loss to 0!')
             else:
-                self.stack.insert(stack_position, layer)
-        elif type == 'source':
-            self.source = SourceLayer()
-            self.source.name = material.lower()
-            try:
-                self.source.dielectric = mats.Electrical.props[self.source.name][0]
-            except:
-                raise KeyError('I don\'t know that material!')
-            try:
-                self.source.losstangent = mats.Electrical.props[self.source.name][1]
-            except:
-                self.source.losstangent = 0
-                print('\nI don\'t know this loss tangent. Setting loss to 0!')
-        elif type == 'terminator':
-            self.terminator = TerminatorLayer()
-            self.terminator.name = material.lower()
-            try:
-                self.terminator.dielectric = mats.Electrical.props[self.terminator.name][0]
-            except:
-                raise KeyError('I don\'t know that material!')
-            try:
-                self.terminator.losstangent = mats.Electrical.props[self.terminator.name][1]
-            except:
-                self.terminator.losstangent = 0
-                print('\nI don\'t know this loss tangent. Setting loss to 0!')
-        else:
-            raise ValueError('Type must be one of LAYER, SOURCE, or TERMINATOR')
+                raise ValueError('Type must be one of LAYER, SOURCE, or TERMINATOR')
         return
 
     def add_custom_layer(self, material, thickness, units, dielectric, loss_tangent, stack_position=-1):
@@ -693,7 +696,7 @@ class Builder:
             self.stack.insert(stack_position, layer)
         return
 
-    def display_sim_parameters(self):
+    def show_sim_setup(self):
         """Display all the simulation parameters in one place."""
         pprint.pprint(vars(self))
         return
@@ -920,12 +923,15 @@ class Builder:
 
     def show_materials(self):
         """List the materials with known properties. The listed material names 
-        are keys in the materials properties dictionary. 
+        are keys in the materials properties dictionary.
         """
-        print('\nThe materials with known dielectric properties are:\n')
-        pprint.pprint(mats.Electrical.props)
-        print('\nThe materials with known loss tangents are:\n')
-        pprint.pprint(mats.Electrical.props)
+        matpath = os.path.abspath(os.path.dirname(__file__))
+        with open(os.path.join(matpath, 'materials.json'), 'r') as f:
+            mats = json.load(f)
+            print('\nThe materials with known properties are:\n')
+            pprint.pprint(mats.keys())
+#            print('\nThe materials with known loss tangents are:\n')
+#            pprint.pprint(mats.keys())
         return
 
     def sim_single_freq(self, frequency, theta_0, pol='s'):
