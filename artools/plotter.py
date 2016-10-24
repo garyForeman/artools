@@ -1,4 +1,4 @@
-"""Contains convenience functions for plotting AR simulation results such as transmission and reflection.
+""" Contains convenience functions for plotting AR simulation results such as transmission and reflection.
 """
 
 #Filename: plotter.py
@@ -11,17 +11,8 @@ import time
 import matplotlib.pyplot as plt
 import numpy as np
 
-"""
-TODO
 
-7/26
-    * Debug _convert_to_wavelength(). The plot output looks funny....
-    * write a bandpass drawing function that take upper and lower limits
-    as input and draws a semi-opaque, colored rectangular region
-"""
-
-
-class Plot:
+class Plot(object):
     """Contains the generic elements needed for an AR simulation plot
 
     Attributes
