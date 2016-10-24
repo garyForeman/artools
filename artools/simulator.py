@@ -18,8 +18,9 @@ import time
 import numpy as np
 import scipy as sp
 import json
+import logging
 
-class Layer:
+class Layer(object):
     """A layer in the AR coating.
 
     Attributes
@@ -142,7 +143,7 @@ class TerminatorLayer(Layer):
         return '{} (terminator layer)'.format(self.name)
 
 
-class Builder:
+class Builder(object):
     """The main body of the simulator code.
 
     Attributes
