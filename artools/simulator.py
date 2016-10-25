@@ -18,7 +18,9 @@ import time
 import numpy as np
 import scipy as sp
 import json
-import logging
+#import logging
+
+from .arlogger import ARLogger
 
 class Layer(object):
     """A layer in the AR coating.
@@ -632,7 +634,8 @@ class Builder(object):
                     layer.losstangent = mats[layer.name]['tand']
                 except:
                     layer.losstangent = 0
-                    print('\nI don\'t know this loss tangent. Setting loss to 0!')
+                    ARLogger().logger.warning('I don\'t know this loss tangent.'
+                                              ' Setting loss to 0!')
                 if (stack_position == -1):
                     self.stack.append(layer)
                 else:
@@ -648,24 +651,28 @@ class Builder(object):
                     self.source.losstangent = mats[self.source.name]['tand']
                 except:
                     self.source.losstangent = 0
-                    print('\nI don\'t know this loss tangent. Setting loss to 0!')
+                    ARLogger().logger.warning('I don\'t know this loss tangent.'
+                                              ' Setting loss to 0!')
             elif type == 'terminator':
                 self.terminator = TerminatorLayer()
                 self.terminator.name = material.lower()
                 try:
-                    self.terminator.dielectric = mats[self.terminator.name]['dielectric']
+                    self.terminator.dielectric = \
+                        mats[self.terminator.name]['dielectric']
                 except:
                     raise KeyError('I don\'t know that material!')
                 try:
                     self.terminator.losstangent = mats[self.terminator.name]['tand']
                 except:
                     self.terminator.losstangent = 0
-                    print('\nI don\'t know this loss tangent. Setting loss to 0!')
+                    ARLogger().logger.warning('I don\'t know this loss tangent.'
+                                              ' Setting loss to 0!')
             else:
                 raise ValueError('Type must be one of LAYER, SOURCE, or TERMINATOR')
         return
 
-    def add_custom_layer(self, material, thickness, units, dielectric, loss_tangent, stack_position=-1):
+    def add_custom_layer(self, material, thickness, units, dielectric, \
+                             loss_tangent, stack_position=-1):
         """Add a layer with custom properties to the AR stack.
 
         Arguments
@@ -732,7 +739,7 @@ class Builder(object):
             the reflections at each frequency.
         """
         t0 = time.time()
-        print('Beginning AR coating simulation')
+        ARLogger().logger.info('Beginning AR coating simulation')
         self._d_converter()
         self._interconnect()
         if self.angle_sweep is None:
@@ -776,10 +783,10 @@ class Builder(object):
                 header = self._make_header(results)
                 f.writelines(header)
                 np.savetxt(f, np.c_[fs, ts, rs, loss], delimiter='\t')
-            print('Finished running AR coating simulation')
+            ARLogger().logger.info('Finished running AR coating simulation')
             t1 = time.time()
             t_elapsed = t1-t0
-            print('Elapsed time: {t}s\n'.format(t=t_elapsed))
+            ARLogger().logger.info('Elapsed time: {t}s\n'.format(t=t_elapsed))
             return results
         else:
             if self.angle_sweep[0] != 0:
@@ -838,10 +845,10 @@ class Builder(object):
                     header = self._make_header(results)
                     f.writelines(header)
                     np.savetxt(f, np.c_[fs, ts, rs], delimiter='\t')
-                print('Finished running AR coating simulation')
+                ARLogger().logger.info('Finished running AR coating simulation')
                 t1 = time.time()
                 t_elapsed = t1-t0
-                print('Elapsed time: {t}s\n'.format(t=t_elapsed))
+                ARLogger().logger.info('Elapsed time: {t}s\n'.format(t=t_elapsed))
                 angles.append(results)
             return np.asarray(angles)
 
@@ -931,8 +938,6 @@ class Builder(object):
             mats = json.load(f)
             print('\nThe materials with known properties are:\n')
             pprint.pprint(mats.keys())
-#            print('\nThe materials with known loss tangents are:\n')
-#            pprint.pprint(mats.keys())
         return
 
     def sim_single_freq(self, frequency, theta_0, pol='s'):
