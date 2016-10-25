@@ -45,7 +45,7 @@
         "tand": 0.015
     }, 
     "srtio3": {
-        "dielectric": 300., 
+        "dielectric": 300.0, 
         "lib": "program", 
         "tand": 0.0003
     }, 
