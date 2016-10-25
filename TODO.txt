@@ -1,10 +1,10 @@
-CHANGES FOR v0.1.4
+CHANGES FOR v0.2
 
 * update docstrings
   	 * definitely check set_angle_sweep() docstring. it is snarky.
 * COMPLETED 9/19/16 - fix get_bandpass_statistics() in simulator.py
 * COMPLETED 9/19/16 - include bandpass statistics in run_sim() output file
-* COMPLETED 9/19/16 - inclide dielectric loss as a primary run_sim() output (like 'T', 'R', and "Frequency')
+* COMPLETED 9/19/16 - include dielectric loss as a primary run_sim() output (like 'T', 'R', and "Frequency')
 * COMPLETED 9/16/16 - include handling off-normal angles of incidence
 * double-check bandpass plotting. it's probably broken :(
 * COMPLETED 9/17/16 - fix logging for theta sweeps
@@ -15,7 +15,7 @@ CHANGES FOR v0.1.4
 * think of different way to handle angle sweep outputs. maybe log the header for each angle, but pickle the output so there's just two  files instead of several.
 * pass bandpasses set in simulator to plotter
 * fix how plotter's load_data() handles the output of an angle sweep
-* major change to material library:
-  	* change the material storage from materials to a cPickle
-	* add new dependency to setup
+* COMPLETED SOME TIME AGO... -  major change to material library:
+  	* change the material storage from materials to a json
 	* fix everything that breaks in simulator
+* COMPLETED 10/24/16 - add a basic logging functionality that displays status messages in the terminal
