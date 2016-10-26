@@ -9,17 +9,13 @@ Based on transfer matrix method outlined in Hou, H.S. 1974.
 #         Steve Byrnes, and Aritoki Suzuki)
 # Filename: simulator.py
 
-
-import glob
+from __future__ import print_function
+import json
 import os
 import pprint
 import time
-#import materials as mats
 import numpy as np
 import scipy as sp
-import json
-#import logging
-
 from .arlogger import ARLogger
 
 class Layer(object):
@@ -31,9 +27,9 @@ class Layer(object):
         The name of the material comprising the layer. Default is 'Generic layer'
     thickness : float
         The thickness of the layer material. Default is 5 mil.
-    type : string
-        The type of layer. Default is `Layer`, which is an element of the AR
-        coating. Other acceptable types are `Source` and `Terminator`.
+    category : string
+        The category of layer. Default is `Layer`, which is an element of the AR
+        coating. Other acceptable categories are `Source` and `Terminator`.
     dielectric : float
         The dielectric constant of the layer material. Default is 1.
     losstangent : float
@@ -42,7 +38,7 @@ class Layer(object):
     def __init__(self):
         self.name = 'Generic layer'
         self.thickness = 5.
-        self.type = 'Layer'
+        self.category = 'Layer'
         self.units = 'mil'
         self.dielectric = 1.
         self.losstangent = 0.
@@ -58,23 +54,23 @@ class Layer(object):
 
     def get_index(self):
         """Return the refractive index of the layer."""
-        return (np.sqrt(self.dielectric))
+        return np.sqrt(self.dielectric)
 
     def ideal_thickness(self, opt_freq=160e9):
         """Return the ideal quarter wavelength thickness of the AR coating layer
         at a given optimization frequency.
-        
+
         Arguments
         ---------
         opt_freq : float, optional
-            The optimization frequency (in Hz) for the layers thickness. Defaults 
+            The optimization frequency (in Hz) for the layers thickness. Defaults
             to 160 GHz.
         """
-        return (1/np.sqrt(self.dielectric)*3e8/(4*opt_freq))
+        return 1/np.sqrt(self.dielectric)*3e8/(4*opt_freq)
 
 
 class SourceLayer(Layer):
-    """A special case of ``Layer``; represents the layer from which the simulated wave 
+    """A special case of ``Layer``; represents the layer from which the simulated wave
     emanates.
 
     Attributes
@@ -83,14 +79,14 @@ class SourceLayer(Layer):
         The thickness of the source layer. Defaults to ``numpy.inf`` since the model
         doesn't care about the thickness of source layer. The thickness of the
         source layer should not be changed under normal operations.
-    type : string
-        The type of layer. Default is `Source`, which is an element of the model,
-        but not the coating. Other acceptable types are `Layer` and `Terminator`.
+    category : string
+        The category of layer. Default is `Source`, which is an element of the model,
+        but not the coating. Other acceptable categories are `Layer` and `Terminator`.
     """
     def __init__(self):
         Layer.__init__(self)
         self.thickness = np.inf
-        self.type = 'Source'
+        self.category = 'Source'
 
     def __repr__(self):
         """Return a nice string formatted representation of the layer."""
@@ -98,47 +94,47 @@ class SourceLayer(Layer):
 
 
 class SubstrateLayer(Layer):
-    """A special case of ``Layer``; represents the layer to which the AR coating is 
+    """A special case of ``Layer``; represents the layer to which the AR coating is
     attached.
 
     Attributes
     ----------
     thickness : float
-        The thickness of the substrate layer. Defaults to 250 mils, which is 
+        The thickness of the substrate layer. Defaults to 250 mils, which is
         the typical thickness of a sample puck used in the Berkeley FTS setup.
         This may be changed as is necessary, but the units must (eventually) be
         converted to meters before being fed to the simulator.
-    type : string
-        The type of layer
+    category : string
+        The category of layer
     """
     def __init__(self):
         Layer.__init__(self)
         self.thickness = 250.
-        self.type = 'Substrate'
-        
+        self.category = 'Substrate'
+
     def __repr__(self):
         return '{} (substrate)'.format(self.name)
 
 
 class TerminatorLayer(Layer):
-    """A special case of ``Layer``; represents the layer upon which the simulated wave 
+    """A special case of ``Layer``; represents the layer upon which the simulated wave
     terminates.
 
     Attributes
     ----------
     thickness : float
         The thickness of the terminating layer. Defaults to ``numpy.inf`` since
-        the model doesn't care about the thickness of the terminating layer. 
-        The thickness of the terminating layer should not be changed under 
+        the model doesn't care about the thickness of the terminating layer.
+        The thickness of the terminating layer should not be changed under
         normal operations.
-    type : string
-        The type of layer. Default is `Terminator`, which is an element of the model,
-        but not the coating. Other acceptable types are `Source` and `Layer`.
+    category : string
+        The category of layer. Default is `Terminator`, which is an element of the model,
+        but not the coating. Other acceptable categories are `Source` and `Layer`.
     """
     def __init__(self):
         Layer.__init__(self)
         self.thickness = np.inf
-        self.type = 'Terminator'
+        self.category = 'Terminator'
 
     def __repr__(self):
         """Return a nice string formatted representation of the layer."""
@@ -164,7 +160,7 @@ class Builder(object):
         'transmission_data_XXXXX.txt' where `XXXXX` is a time-stamp to avoid
         overwriting previous simulation results.
     save_path : string
-        The path to which the simulation results will be saved. Defaults to the 
+        The path to which the simulation results will be saved. Defaults to the
         current working directory.
     source : object
         ``Layer`` object ``SourceLayer`` that defines where the wave emanates from.
@@ -174,7 +170,7 @@ class Builder(object):
         and terminator layers. Default is empty list.
     structure : list
         The layers incorporated in the simulation INCLUDING the source and
-        terminator layers. Default is empty list. The list is populated 
+        terminator layers. Default is empty list. The list is populated
         by creating layers and calling ``_interconnect()``.
     terminator : object
         ``Layer`` object ``TerminatorLayer`` that defines where the wave terminates.
@@ -197,54 +193,57 @@ class Builder(object):
         self.structure = []
         self.terminator = None
 
-    def _calc_R_T_amp(self, polarization, n, delta, theta):
+    def calc_ref_trans_amp(self, polarization, indices, deltas, thetas):
         """Calculate the reflected and transmitted amplitudes
 
         Arguments
         ---------
         polarization : string
             The polarization of the source wave. Must be one of: 's', 'p', or 'u'.
-        n : array
+        indices : array
             An array of refractive indices, ordered from source to terminator
-        delta : array
+        deltas : array
             An array of wavevector offsets
-        theta : array
+        thetas : array
             An array of Snell angles in radians. Expects the output of snell().
-        
+
         Returns
         -------
         (r, t) : tuple
             A tuple where 'r' is the reflected amplitude, and 't' is the
-            transmitted amplitude
+            transmitted amplitude.
         """
         t_amp = np.zeros((len(self.structure), len(self.structure)), dtype=complex)
         r_amp = np.zeros((len(self.structure), len(self.structure)), dtype=complex)
         for i in range(len(self.structure)-1):
-            t_amp[i,i+1] = self._t_at_interface(polarization, n[i], n[i+1], theta[i], theta[i+1])
-            r_amp[i,i+1] = self._r_at_interface(polarization, n[i], n[i+1], theta[i], theta[i+1])
-        M = np.zeros((len(self.structure),2,2),dtype=complex)
-        m_r_amp = np.zeros((len(self.structure),2,2), dtype=complex)
-        m_t_amp = np.zeros((len(self.structure),2,2), dtype=complex)
-        for i in range(1,len(self.structure)-1):
-            m_t_amp[i] = self._make_2x2(np.exp(-1j*delta[i]), 0., 0., np.exp(1j*delta[i]), dtype=complex)
-            m_r_amp[i] = self._make_2x2(1., r_amp[i,i+1], r_amp[i,i+1], 1., dtype=complex)
-        m_temp = np.dot(m_t_amp, m_r_amp)
-        for i in range(1,len(self.structure)-1):
-            M[i] = 1/t_amp[i,i+1] * np.dot(self._make_2x2(np.exp(-1j*delta[i]),
-                                                          0., 0., np.exp(1j*delta[i]),
-                                                          dtype=complex),
-                                           self._make_2x2(1., r_amp[i,i+1],
-                                                              r_amp[i,i+1], 1.,
-                                                              dtype=complex))
-        M_prime = self._make_2x2(1., 0., 0., 1., dtype=complex)
+            t_amp[i, i+1] = self._t_at_interface(polarization, indices[i], indices[i+1],
+                                                 thetas[i], thetas[i+1])
+            r_amp[i, i+1] = self._r_at_interface(polarization, indices[i], indices[i+1],
+                                                 thetas[i], thetas[i+1])
+        m_matrix = np.zeros((len(self.structure), 2, 2), dtype=complex)
+        m_r_amp = np.zeros((len(self.structure), 2, 2), dtype=complex)
+        m_t_amp = np.zeros((len(self.structure), 2, 2), dtype=complex)
         for i in range(1, len(self.structure)-1):
-            M_prime = np.dot(M_prime, M[i])
-        mod_M_prime = self._make_2x2(1.,r_amp[0,1], r_amp[0,1], 1., dtype=complex)/t_amp[0,1]
-        M_prime = np.dot(self._make_2x2(1., r_amp[0,1], r_amp[0,1], 1.,
-                                            dtype=complex)/t_amp[0,1], M_prime)
-        t = 1/M_prime[0,0]
-        r = M_prime[0,1]/M_prime[0,0]
-        return (r, t)
+            m_t_amp[i] = self._make_2x2(np.exp(-1j*deltas[i]), 0., 0.,
+                                        np.exp(1j*deltas[i]), dtype=complex)
+            m_r_amp[i] = self._make_2x2(1., r_amp[i, i+1], r_amp[i, i+1],
+                                        1., dtype=complex)
+        for i in range(1, len(self.structure)-1):
+            m_matrix[i] = 1/t_amp[i, i+1] * np.dot(self._make_2x2(np.exp(-1j*deltas[i]),
+                                                                  0., 0.,
+                                                                  np.exp(1j*deltas[i]),
+                                                                  dtype=complex),
+                                                   self._make_2x2(1., r_amp[i, i+1],
+                                                                  r_amp[i, i+1], 1.,
+                                                                  dtype=complex))
+        m_prime = self._make_2x2(1., 0., 0., 1., dtype=complex)
+        for i in range(1, len(self.structure)-1):
+            m_prime = np.dot(m_prime, m_matrix[i])
+        m_prime = np.dot(self._make_2x2(1., r_amp[0, 1], r_amp[0, 1], 1.,
+                                        dtype=complex)/t_amp[0, 1], m_prime)
+        trans_amp = 1/m_prime[0, 0]
+        ref_amp = m_prime[0, 1]/m_prime[0, 0]
+        return (ref_amp, trans_amp)
 
     def _d_converter(self):
         """Check the units of all elements in the connected ar coating
@@ -256,13 +255,13 @@ class Builder(object):
         for i in self.stack:
             i.thickness = i.thickness*units[i.units]
         return
-        
-    def _find_ks(self, n, frequency, tan, theta, lossy=True):
+
+    def find_ks(self, indices, frequency, tans, thetas, lossy=True):
         """Calculate the wavenumbers.
 
         Arguments
         ---------
-        n : array
+        indices : array
             An array of refractive indices, ordered from source to
             terminator
         frequency : float
@@ -281,19 +280,19 @@ class Builder(object):
             The complex wavenumber, k
         """
         if lossy:
-            k = 2*np.pi*n*frequency*np.cos(theta)*(1+0.5j*tan)/3e8
+            k_values = 2*np.pi*indices*frequency*np.cos(thetas)*(1+0.5j*tans)/3e8
         else:
-            k = 2*np.pi*n*frequency/3e8
-        return k
+            k_values = 2*np.pi*indices*frequency/3e8
+        return k_values
 
-    def _find_k_offsets(self, k, d):
+    def find_k_offsets(self, k_value, distances):
         """Calculate the wavenumber offset, delta.
 
         Arguments
         ---------
-        k : array
+        k_values : array
             The wavevector
-        d : array
+        distances : array
             An array of thicknesses, ordered from source to terminator
 
         Returns
@@ -303,11 +302,11 @@ class Builder(object):
         """
         olderr = sp.seterr(invalid='ignore')  # turn off 'invalid multiplication' error;
                                               # it's just the 'inf' boundaries
-        delta = k * d
+        delta = k_value*distances
         sp.seterr(**olderr)                   # turn the error back on
         return delta
 
-    def _get_R(self, net_r_amp):
+    def get_reflected_power(self, net_r_amp):
         """Return fraction of reflected power.
 
         Arguments
@@ -317,7 +316,7 @@ class Builder(object):
         """
         return np.abs(net_r_amp)**2
 
-    def _get_T(self, net_t_amp, n_i, n_f, theta_i, theta_f):
+    def get_transmitted_power(self, net_t_amp, n_i, n_f, theta_i, theta_f):
         """Return the fraction of transmitted power.
 
         Arguments
@@ -339,7 +338,7 @@ class Builder(object):
 
     def _get_bandpass_stats(self, band, sim_output):
         """Compute basic descriptive statistics for a bandpass
-        
+
         Arguments
         ---------
         band : tuple
@@ -357,15 +356,15 @@ class Builder(object):
                  'ghz':1e9, 'GHz':1e9, 'thz':1e12, 'THz':1e12}
         convert = units[self.f_sweep_params['units']]
         freqs = sim_output['freqs']
-        T = sim_output['T']
-        R = sim_output['R']
+        trans_power = sim_output['T']
+        ref_power = sim_output['R']
         vals = np.ma.masked_inside(freqs, band[0]*convert, band[1]*convert)
         mask = np.ma.getmask(vals)
-        masked_T = T[mask]
-        masked_R = R[mask]
-        T_avg = np.average(masked_T)
-        R_avg = np.average(masked_R)
-        stats = {'R_avg':R_avg, 'T_avg':T_avg}   
+        masked_trans_power = trans_power[mask]
+        masked_ref_power = ref_power[mask]
+        trans_power_avg = np.average(masked_trans_power)
+        ref_power_avg = np.average(masked_ref_power)
+        stats = {'R_avg':ref_power_avg, 'T_avg':trans_power_avg}
         return stats
 
     def _interconnect(self):
@@ -379,27 +378,27 @@ class Builder(object):
         self.structure.append(self.terminator)
         return
 
-    def _make_2x2(self, A11, A12, A21, A22, dtype=float):
+    def _make_2x2(self, a11, a12, a21, a22, dtype=float):
         """Return a 2x2 array quickly. (Thanks Steve!)
 
         Arguments
         ---------
-        A11 : float
-            Array element [0,0].
-        A12 : float
-            Array element [0,1].
-        A21 : float
-            Array element [1,0].
-        A22 : float
-            Array element [1,1].
+        a11 : float
+            Array element [0, 0].
+        a12 : float
+            Array element [0, 1].
+        a21 : float
+            Array element [1, 0].
+        a22 : float
+            Array element [1, 1].
         dtype : dtype, optional
             The datatype of the array. Defaults to float.
         """
-        array = np.empty((2,2), dtype=dtype)
-        array[0,0] = A11
-        array[0,1] = A12
-        array[1,0] = A21
-        array[1,1] = A22
+        array = np.empty((2, 2), dtype=dtype)
+        array[0, 0] = a11
+        array[0, 1] = a12
+        array[1, 0] = a21
+        array[1, 1] = a22
         return array
 
     def _make_header(self, sim_results):
@@ -438,9 +437,9 @@ class Builder(object):
         header.append('#\n')
         header.append('# Layer information\n')
         for layer in self.structure:
-            header.append('# name: {}, thickness: {}, dielectric: {}, loss: {}, type: {}\n'.
+            header.append('# name: {}, thickness: {}, dielectric: {}, loss: {}, category: {}\n'.
                           format(layer.name, layer.thickness, layer.dielectric,
-                                 layer.losstangent, layer.type))
+                                 layer.losstangent, layer.category))
         header.append('#\n')
         header.append('# Frequency (Hz)\t\t'
                       'Transmission\t\t\t'
@@ -450,7 +449,7 @@ class Builder(object):
 
     def _make_save_path(self, save_path, save_name):
         """Assemble the file name and path to the results file.
-        
+
         Returns
         -------
         path : string
@@ -463,16 +462,16 @@ class Builder(object):
             path = os.path.join(save_path, save_name)
         return path
 
-    def _r_at_interface(self, polarization, n1, n2, theta1, theta2):
+    def _r_at_interface(self, polarization, index1, index2, theta1, theta2):
         """Calculate the reflected amplitude at an interface.
 
         Arguments
         ---------
         polarization : string
             The polarization of the source wave. Must be one of: 's' or 'p'.
-        n1 : float
+        index1 : float
             The index of refraction of the first material.
-        n2 : float
+        index2 : float
             The index of refraction of the second material.
         theta1 : float
             The angle of incidence at interface 1, in radians
@@ -485,17 +484,17 @@ class Builder(object):
             The amplitude of the reflected power
         """
         if polarization == 's':
-            s_numerator = (n1*np.cos(theta1)-n2*np.cos(theta2))
-            s_denominator = (n1*np.cos(theta1)+n2*np.cos(theta2))
+            s_numerator = (index1*np.cos(theta1)-index2*np.cos(theta2))
+            s_denominator = (index1*np.cos(theta1)+index2*np.cos(theta2))
             return s_numerator/s_denominator
         elif polarization == 'p':
-            p_numerator = (n2*np.cos(theta1)-n1*np.cos(theta2))
-            p_denominator = (n1*np.cos(theta2)+n2*np.cos(theta1))
+            p_numerator = (index2*np.cos(theta1)-index1*np.cos(theta2))
+            p_denominator = (index1*np.cos(theta2)+index2*np.cos(theta1))
             return p_numerator/p_denominator
         else:
             raise ValueError("Polarization must be 's' or 'p'")
 
-    def _sort_ns(self):
+    def sort_indices(self):
         """Organize the refractive indices of the layers in the simulation.
 
         Returns
@@ -503,13 +502,13 @@ class Builder(object):
         n : array
             The ordered list of indices of refraction, from source to terminator
         """
-        n = []
+        indices = []
         for layer in self.structure:
-            n.append(layer.get_index())
-        n = np.asarray(n)
-        return n
+            indices.append(layer.get_index())
+        indices = np.asarray(indices)
+        return indices
 
-    def _sort_ds(self):
+    def sort_distances(self):
         """Organize the layers' thicknesses in the simulation.
 
         Returns
@@ -517,16 +516,16 @@ class Builder(object):
         d : array
             The ordered list of thicknesses, from source to terminator
         """
-        d = []
+        distances = []
         for layer in self.structure:
-            if (layer.type == 'Layer' or layer.type == 'Substrate'):
-                d.append(layer.thickness)
-        d.insert(0, self.structure[0].thickness)
-        d.append(self.structure[-1].thickness)
-        d = np.asarray(d)
-        return d
+            if layer.category == 'Layer' or layer.category == 'Substrate':
+                distances.append(layer.thickness)
+        distances.insert(0, self.structure[0].thickness)
+        distances.append(self.structure[-1].thickness)
+        distances = np.asarray(distances)
+        return distances
 
-    def _sort_tans(self):
+    def sort_tans(self):
         """Organize the loss tangents of the layers in the simulation.
 
         Returns
@@ -540,16 +539,16 @@ class Builder(object):
         tan = np.asarray(tan)
         return tan
 
-    def _t_at_interface(self, polarization, n1, n2, theta1, theta2):
+    def _t_at_interface(self, polarization, index1, index2, theta1, theta2):
         """Calculate the transmission amplitude at an interface.
 
         Arguments
         ---------
         polarization : string
             The polarization of the source wave. Must be one of: 's' or 'p'.
-        n1 : float
+        index1 : float
             The index of refraction of the first material.
-        n2 : float
+        index2 : float
             The index of refraction of the second material.
         theta1 : float
             The angle of incidence at interface 1, in radians
@@ -562,12 +561,12 @@ class Builder(object):
             The amplitude of the transmitted power
         """
         if polarization == 's':
-            s_numerator = 2*n1*np.cos(theta1)
-            s_denominator = (n1*np.cos(theta1)+n2*np.cos(theta2))
+            s_numerator = 2*index1*np.cos(theta1)
+            s_denominator = (index1*np.cos(theta1)+index2*np.cos(theta2))
             return s_numerator/s_denominator
         elif polarization == 'p':
-            p_numerator = 2*n1*np.cos(theta1)
-            p_denominator = (n1*np.cos(theta2)+n2*np.cos(theta1))
+            p_numerator = 2*index1*np.cos(theta1)
+            p_denominator = (index1*np.cos(theta2)+index2*np.cos(theta1))
             return p_numerator/p_denominator
         else:
             raise ValueError("Polarization must be 's' or 'p'")
@@ -588,8 +587,8 @@ class Builder(object):
 #         p_data = self.simulate(frequency, 'p', theta_0)
 #         T = (s_data + p_data)/2
 #         return T
- 
-    def add_layer(self, material, thickness=5.0, units='mil', type='layer', \
+
+    def add_layer(self, material, thickness=5.0, units='mil', category='layer', \
                       stack_position=-1):
         """Create a layer from the set of pre-programmed materials and add it
         to the AR coating stack
@@ -608,8 +607,8 @@ class Builder(object):
             The units of length for the AR coating layer. Default is 'mil'.
             Must be one of:
             { 'mil', 'inch', 'mm', 'm', 'um', 'in', 'micron' }
-        type : string, optional
-            The layer type. Default is 'layer', which corresponds to
+        category : string, optional
+            The layer category. Default is 'layer', which corresponds to
             an AR layer. Other options are 'source' or 'terminator', which
             correspond to source and terminator layers, respectively.
         stack_position : int, optional
@@ -618,10 +617,10 @@ class Builder(object):
             to the end (bottom?) of the stack.
         """
         matpath = os.path.dirname(os.path.abspath(__file__))
-        with open(os.path.join(matpath,'materials.json'), 'r') as f:
-            mats = json.load(f)
-            type = type.lower()
-            if type == 'layer':
+        with open(os.path.join(matpath, 'materials.json'), 'r') as materials_library:
+            mats = json.load(materials_library)
+            category = category.lower()
+            if category == 'layer':
                 layer = Layer()
                 layer.name = material.lower()
                 layer.thickness = thickness
@@ -636,11 +635,11 @@ class Builder(object):
                     layer.losstangent = 0
                     ARLogger().logger.warning('I don\'t know this loss tangent.'
                                               ' Setting loss to 0!')
-                if (stack_position == -1):
+                if stack_position == -1:
                     self.stack.append(layer)
                 else:
                     self.stack.insert(stack_position, layer)
-            elif type == 'source':
+            elif category == 'source':
                 self.source = SourceLayer()
                 self.source.name = material.lower()
                 try:
@@ -653,7 +652,7 @@ class Builder(object):
                     self.source.losstangent = 0
                     ARLogger().logger.warning('I don\'t know this loss tangent.'
                                               ' Setting loss to 0!')
-            elif type == 'terminator':
+            elif category == 'terminator':
                 self.terminator = TerminatorLayer()
                 self.terminator.name = material.lower()
                 try:
@@ -668,17 +667,14 @@ class Builder(object):
                     ARLogger().logger.warning('I don\'t know this loss tangent.'
                                               ' Setting loss to 0!')
             else:
-                raise ValueError('Type must be one of LAYER, SOURCE, or TERMINATOR')
+                raise ValueError('Category must be one of LAYER, SOURCE, or TERMINATOR')
         return
 
-    def add_custom_layer(self, material, thickness, units, dielectric, \
-                             loss_tangent, stack_position=-1):
+    def add_custom_layer(self, thickness, units, dielectric, loss_tangent, stack_position=-1):
         """Add a layer with custom properties to the AR stack.
 
         Arguments
         ---------
-        material : string
-            The name of the layer
         thickness : float
             The thickness of the layer
         units : string
@@ -698,7 +694,7 @@ class Builder(object):
         layer.thickness = thickness
         layer.dielectric = dielectric
         layer.losstangent = loss_tangent
-        if (stack_position == -1):
+        if stack_position == -1:
             self.stack.append(layer)
         else:
             self.stack.insert(stack_position, layer)
@@ -738,8 +734,8 @@ class Builder(object):
             transmissions at each frequency, and the third is a list of
             the reflections at each frequency.
         """
-        t0 = time.time()
-        ARLogger().logger.info('Beginning AR coating simulation')
+        t_start = time.time()
+        ARLogger().logger.info('Beginning AR coating simulation.')
         self._d_converter()
         self._interconnect()
         if self.angle_sweep is None:
@@ -747,28 +743,30 @@ class Builder(object):
             t_list = []
             r_list = []
             loss_list = []
-            for f in self.freq_sweep:
-                results = self.sim_single_freq(f, theta_0=0, pol=self.polarization)
-                f_list.append(f)
+            for freq in self.freq_sweep:
+                results = self.sim_single_freq(freq, theta_0=0, polarization=self.polarization)
+                f_list.append(freq)
                 t_list.append(results['T'])
                 r_list.append(results['R'])
                 loss_list.append(results['loss'])
-            fs = np.asarray(f_list)
-            ts = np.asarray(t_list)
-            rs = np.asarray(r_list)
+            frequencies = np.asarray(f_list)
+            trans_powers = np.asarray(t_list)
+            ref_powers = np.asarray(r_list)
             loss = np.asarray(loss_list)
             low = self.f_sweep_params['low']
             high = self.f_sweep_params['high']
             res = self.f_sweep_params['res']
             units = self.f_sweep_params['units']
             results = {}
-            input = {}
+            input_parameters = {}
             statistics = {}
-            results['output'] = {'freqs':fs, 'T':ts, 'R':rs, 'loss':loss}
-            input['frequency'] = {'f_low':low, 'f_high':high, 'f_res':res,
-                                  'f_units':units, 'pol':self.polarization}
-            input['angle'] = {'a_low':'None', 'a_high':'None', 'a_res':'None',
-                              'a_units':'None', 'a_input':0.}
+            results['output'] = {'freqs':frequencies, 'T':trans_powers,
+                                 'R':ref_powers, 'loss':loss}
+            input_parameters['frequency'] = {'f_low':low, 'f_high':high, 'f_res':res,
+                                             'f_units':units, 'pol':self.polarization}
+            input_parameters['angle'] = {'a_low':'None', 'a_high':'None',
+                                         'a_res':'None', 'a_units':'None',
+                                         'a_input':0.}
             if len(self.bands) == 0:
                 statistics['band'] = 'No bandpasses set'
             else:
@@ -776,17 +774,18 @@ class Builder(object):
                     statistics['band{}'.format(i)] = \
                         self._get_bandpass_stats(self.bands[i], results['output'])
             results['statistics'] = statistics
-            results['input'] = input
-            t = time.ctime(time.time())
+            results['input'] = input_parameters
             data_name = self._make_save_path(self.save_path, self.save_name)
-            with open(data_name, 'wb') as f:
+            with open(data_name, 'wb') as out_file:
                 header = self._make_header(results)
-                f.writelines(header)
-                np.savetxt(f, np.c_[fs, ts, rs, loss], delimiter='\t')
+                out_file.writelines(header)
+                np.savetxt(out_file, np.c_[frequencies, trans_powers, ref_powers, loss],
+                           delimiter='\t')
             ARLogger().logger.info('Finished running AR coating simulation')
-            t1 = time.time()
-            t_elapsed = t1-t0
-            ARLogger().logger.info('Elapsed time: {t}s\n'.format(t=t_elapsed))
+            t_end = time.time()
+            t_elapsed = t_end-t_start
+            ARLogger().logger.info('Elapsed time: %s\n', t_elapsed)
+#            ARLogger().logger.info('Elapsed time: {t}\n'.format(t=t_elapsed))
             return results
         else:
             if self.angle_sweep[0] != 0:
@@ -799,16 +798,16 @@ class Builder(object):
                 t_list = []
                 r_list = []
                 loss_list = []
-                for f in self.freq_sweep:
-                    results = self.sim_single_freq(f, theta_0=angle,
-                                                   pol=self.polarization)
-                    f_list.append(f)
+                for freq in self.freq_sweep:
+                    results = self.sim_single_freq(freq, theta_0=angle,
+                                                   polarization=self.polarization)
+                    f_list.append(freq)
                     t_list.append(results['T'])
                     r_list.append(results['R'])
                     loss_list.append(results['loss'])
-                fs = np.asarray(f_list)
-                ts = np.asarray(t_list)
-                rs = np.asarray(r_list)
+                frequencies = np.asarray(f_list)
+                trans_powers = np.asarray(t_list)
+                ref_powers = np.asarray(r_list)
                 loss = np.asarray(loss_list)
                 f_low = self.f_sweep_params['low']
                 f_high = self.f_sweep_params['high']
@@ -820,15 +819,16 @@ class Builder(object):
                 a_units = self.a_sweep_params['units']
                 theta = str(sp.rad2deg(angle))[:4]
                 results = {}
-                input = {}
+                input_parameters = {}
                 statistics = {}
-                results['output'] = {'freqs':fs, 'T':ts, 'R':rs, 'loss':loss}
-                input['frequency'] = {'f_low':f_low, 'f_high':f_high,
-                                      'f_res':f_res, 'f_units':f_units,
-                                      'pol':self.polarization}
-                input['angle'] = {'a_low':a_low, 'a_high':a_high,
-                                  'a_res':a_res, 'a_units':a_units,
-                                  'a_input':theta}
+                results['output'] = {'freqs':frequencies, 'T':trans_powers,
+                                     'R':ref_powers, 'loss':loss}
+                input_parameters['frequency'] = {'f_low':f_low, 'f_high':f_high,
+                                                 'f_res':f_res, 'f_units':f_units,
+                                                 'pol':self.polarization}
+                input_parameters['angle'] = {'a_low':a_low, 'a_high':a_high,
+                                             'a_res':a_res, 'a_units':a_units,
+                                             'a_input':theta}
                 if len(self.bands) == 0:
                     statistics['band'] = 'No bandpasses set'
                 else:
@@ -836,24 +836,24 @@ class Builder(object):
                         statistics['band{}'.format(i)] = \
                             self._get_bandpass_stats(self.bands[i], results['output'])
                 results['statistics'] = statistics
-                results['input'] = input
-                t = time.ctime(time.time())
+                results['input'] = input_parameters
                 data_name = self._make_save_path(self.save_path,
                                                  self.save_name+'_theta{}.txt'\
                                                      .format(theta))
-                with open(data_name, 'wb') as f:
+                with open(data_name, 'wb') as out_file:
                     header = self._make_header(results)
-                    f.writelines(header)
-                    np.savetxt(f, np.c_[fs, ts, rs], delimiter='\t')
+                    out_file.writelines(header)
+                    np.savetxt(out_file, np.c_[frequencies, trans_powers, ref_powers],
+                               delimiter='\t')
                 ARLogger().logger.info('Finished running AR coating simulation')
-                t1 = time.time()
-                t_elapsed = t1-t0
-                ARLogger().logger.info('Elapsed time: {t}s\n'.format(t=t_elapsed))
+                t_end = time.time()
+                t_elapsed = t_end-t_start
+                ARLogger().logger.info('Elapsed time: %ss\n', t_elapsed)
                 angles.append(results)
             return np.asarray(angles)
 
     def set_angle_sweep(self, theta_min, theta_max, res=1., units='deg'):
-        """Set the range of incident angles over which to run the simulation. 
+        """Set the range of incident angles over which to run the simulation.
         If you only want a single, non-normal incident angle, then set the same
         value for both theta_min and theta_max. The angle theta is defined as
         the deviation from normal incidence.
@@ -875,22 +875,20 @@ class Builder(object):
             The units of the angle. Must be either 'deg' or 'rad'. Default is
             'rad'.
         """
-        min = theta_min
-        max = theta_max
-        res = res
-        self.a_sweep_params['low'] = min
-        self.a_sweep_params['high'] = max
+#        res = res
+        self.a_sweep_params['low'] = theta_min
+        self.a_sweep_params['high'] = theta_max
         self.a_sweep_params['res'] = res
         self.a_sweep_params['units'] = units
         if units == 'deg':
-            min = sp.deg2rad(min)
-            max = sp.deg2rad(max)
+            theta_min = sp.deg2rad(theta_min)
+            theta_max = sp.deg2rad(theta_max)
             res = sp.deg2rad(res)
-        samples = (max-min)/res
+        samples = (theta_max-theta_min)/res
         if samples == 0:
-            self.angle_sweep = np.array([0., min])
+            self.angle_sweep = np.array([0., theta_min])
             return
-        self.angle_sweep = np.linspace(min, max, samples)
+        self.angle_sweep = np.linspace(theta_min, theta_max, samples)
         return
 
     def set_bandpass(self, lower_bound, upper_bound):
@@ -903,7 +901,7 @@ class Builder(object):
 
     def set_freq_sweep(self, lower_bound, upper_bound, resolution=1, units='ghz'):
         """Set the frequency range over which the simulation will run.
-        
+
         Arguments
         ---------
         lower_bound : float
@@ -930,25 +928,25 @@ class Builder(object):
         return
 
     def show_materials(self):
-        """List the materials with known properties. The listed material names 
+        """List the materials with known properties. The listed material names
         are keys in the materials properties dictionary.
         """
         matpath = os.path.abspath(os.path.dirname(__file__))
-        with open(os.path.join(matpath, 'materials.json'), 'r') as f:
-            mats = json.load(f)
+        with open(os.path.join(matpath, 'materials.json'), 'r') as materials_library:
+            mats = json.load(materials_library)
             print('\nThe materials with known properties are:\n')
             pprint.pprint(mats.keys())
         return
 
-    def sim_single_freq(self, frequency, theta_0, pol='s'):
+    def sim_single_freq(self, frequency, theta_0, polarization='s'):
         """Run the model simulation for a single frequency.
 
         Arguments
         ---------
         frequency : float
             The frequency at which to evaluate the model (in Hz).
-        pol : string, optional
-            The polarization of the source wave. Must be one of: 's', 
+        polarization : string, optional
+            The polarization of the source wave. Must be one of: 's',
             'p', or 'u'. Default is 's'.
         theta_0 : float, optional
             The angle of incidence at the first interface.
@@ -960,17 +958,19 @@ class Builder(object):
             1) 'T' : array; the total transmission through the model
             2) 'R' : array; the total reflection through the model
         """
-        n = self._sort_ns()
-        d = self._sort_ds()
-        tan = self._sort_tans()
-        theta = self.snell(n, theta_0)
-        k = self._find_ks(n, frequency, tan, theta)
-        delta = self._find_k_offsets(k, d)
-        r, t = self._calc_R_T_amp(pol, n, delta, theta)
-        T = self._get_T(t, n[0], n[-1], theta[0], theta[-1])
-        R = self._get_R(r)
-        loss = 1-T-R
-        result = {'T':T, 'R':R, 'loss':loss}
+        indices = self.sort_indices()
+        distances = self.sort_distances()
+        loss_tangents = self.sort_tans()
+        thetas = self.snell(indices, theta_0)
+        k_values = self.find_ks(indices, frequency, loss_tangents, thetas)
+        deltas = self.find_k_offsets(k_values, distances)
+        ref_amp, trans_amp = self.calc_ref_trans_amp(polarization, indices,
+                                                     deltas, thetas)
+        trans_power = self.get_transmitted_power(trans_amp, indices[0], indices[-1],
+                                                 thetas[0], thetas[-1])
+        ref_power = self.get_reflected_power(ref_amp)
+        loss = 1-trans_power-ref_power
+        result = {'T':trans_power, 'R':ref_power, 'loss':loss}
         return result
 
     def snell(self, indices, theta_0):
@@ -984,8 +984,8 @@ class Builder(object):
         theta_0 : float
             The angle of incidence at the first interface.
         """
-        theta = [theta_0]
+        thetas = [theta_0]
         for i in range(len(indices)-1):
-            angle = sp.arcsin(np.real_if_close(indices[i]*np.sin(theta[i])/indices[i+1]))
-            theta.append(angle)
-        return theta
+            angle = sp.arcsin(np.real_if_close(indices[i]*np.sin(thetas[i])/indices[i+1]))
+            thetas.append(angle)
+        return thetas

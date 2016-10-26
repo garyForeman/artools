@@ -34,12 +34,12 @@ class ARLogger(object):
                 'artools' : {
                     'handlers' : ['console'],
                     'propagate' : True,
-                    'level' : 'DEBUG',
+                    'level' : 'INFO',
                     },
                 },
             'formatters' : {
                 'verbose' : {
-                    'format' : '%(asctime)s - %(module)s %(levelname)s:\t%(message)s',
+                    'format' : '%(asctime)s - %(module)s %(levelname)s:\t(%(funcName)s) %(message)s',
                     'datefmt' : '%H:%M:%S',
                     },
                 },
